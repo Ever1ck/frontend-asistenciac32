@@ -52,12 +52,12 @@ export default function NoticiaPage() {
   }, [params.id])
 
   if (isLoading) {
-    return <div className="container mx-auto p-4">Cargando...</div>
+    return <div className="container mx-auto p-4 mt-[124px]">Cargando...</div>
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-4">
+      <div className="container mx-auto p-4 mt-[124px]">
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
           <strong className="font-bold">Error: </strong>
           <span className="block sm:inline">{error}</span>
@@ -67,14 +67,25 @@ export default function NoticiaPage() {
   }
 
   if (!entrada) {
-    return <div className="container mx-auto p-4">No se encontró la entrada</div>
+    return <div className="container mx-auto p-4 mt-[124px]">No se encontró la entrada</div>
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4 mt-[124px]">
       <div className="flex flex-col md:flex-row gap-8">
         <main className="w-full md:w-3/4">
           <h1 className="text-3xl font-bold mb-4">{entrada.titulo}</h1>
+          {entrada.portada_url && (
+            <div className="mb-4 relative h-[300px]">
+              <Image
+                src={`${process.env.NEXT_PUBLIC_BACKEND_IMAGES}/${entrada.portada_url}`}
+                alt={entrada.titulo}
+                layout="fill"
+                objectFit="cover"
+                className="rounded-lg"
+              />
+            </div>
+          )}
           <div className="mb-4 text-sm text-gray-600">
             <span>{new Date(entrada.fecha).toLocaleDateString()}</span>
             <span className="mx-2">|</span>
@@ -82,21 +93,11 @@ export default function NoticiaPage() {
             <span className="mx-2">|</span>
             <span>{entrada.tipo_entrada}</span>
           </div>
-          {entrada.portada_url && (
-            <div className="mb-4">
-              <Image
-                src={`${process.env.NEXT_PUBLIC_BACKEND_URL}/${entrada.portada_url}`}
-                alt={entrada.titulo}
-                width={800}
-                height={400}
-                layout="responsive"
-                objectFit="cover"
-                className="rounded-lg"
-              />
-            </div>
-          )}
           <Card className="p-4 mb-4">
-            <div dangerouslySetInnerHTML={{ __html: entrada.contenido }} />
+            <div
+              dangerouslySetInnerHTML={{ __html: entrada.contenido }}
+              className="prose max-w-none"
+            />
           </Card>
           <div className="flex space-x-2">
             <Button size="sm" variant="outline">

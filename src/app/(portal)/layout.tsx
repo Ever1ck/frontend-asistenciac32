@@ -78,11 +78,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setTheme={setTheme}
         userProfile={userProfile}
       />
-      <div className="flex flex-1 mt-16">
-        <Sidebar 
-          isSidebarOpen={isSidebarOpen} 
-          setIsSidebarOpen={setIsSidebarOpen} 
-          userProfile={userProfile} 
+      <div className="flex flex-1 mt-16 bg-gray-100">
+        <Sidebar
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+          userProfile={userProfile}
         />
         {isSidebarOpen && (
           <div
@@ -90,9 +90,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             onClick={toggleSidebar}
           ></div>
         )}
-        <main className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 transition-all duration-300 ease-in-out ${
-          isSidebarOpen ? "lg:ml-64" : "lg:ml-20"
-        }`}>
+        <main className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 transition-all duration-300 ease-in-out ${isSidebarOpen ? "lg:ml-20" : "lg:ml-20"
+          }`}>
           {children}
         </main>
       </div>

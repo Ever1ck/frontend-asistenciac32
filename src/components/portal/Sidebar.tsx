@@ -7,35 +7,40 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 
-type Role = "USUARIO" | "CAJA" | "DIRECTOR" | "SECRETARIA" | "MESA_PARTES" | "SIAGIE" | "ADMIN"
+type Role = "Usuario" | "Docente" | "Auxiliar" | "Secretaria" | "Innovacion" | "Subdirector" | "Director" | "Administrador"
 
 const roleMenuItems: Record<Role, { name: string; icon: React.ReactNode }[]> = {
-  USUARIO: [
+  Usuario: [
     { name: "Dashboard", icon: <BarChart2 className="h-4 w-4" /> },
     { name: "Perfil", icon: <User className="h-4 w-4" /> },
   ],
-  CAJA: [
+  Docente: [
     { name: "Pagos", icon: <DollarSign className="h-4 w-4" /> },
     { name: "Reportes", icon: <BarChart2 className="h-4 w-4" /> },
   ],
-  DIRECTOR: [
+  Auxiliar: [
     { name: "Estadísticas", icon: <BarChart2 className="h-4 w-4" /> },
     { name: "Informes", icon: <FileText className="h-4 w-4" /> },
   ],
-  SECRETARIA: [
+  Secretaria: [
     { name: "Agenda", icon: <Calendar className="h-4 w-4" /> },
     { name: "Correspondencia", icon: <Mail className="h-4 w-4" /> },
   ],
-  MESA_PARTES: [
+  Innovacion: [
     { name: "Trámites", icon: <FileText className="h-4 w-4" /> },
     { name: "Documentos", icon: <FileSpreadsheet className="h-4 w-4" /> },
   ],
-  SIAGIE: [
+  Subdirector: [
     { name: "Administrar Actas", icon: <FileText className="h-4 w-4" /> },
     { name: "Generar PDF", icon: <FileSpreadsheet className="h-4 w-4" /> },
     { name: "Actas Generadas", icon: <FileSpreadsheet className="h-4 w-4" /> },
   ],
-  ADMIN: [
+  Director: [
+    { name: "Usuarios", icon: <Users className="h-4 w-4" /> },
+    { name: "Configuración", icon: <Settings className="h-4 w-4" /> },
+    { name: "Logs", icon: <Activity className="h-4 w-4" /> },
+  ],
+  Administrador: [
     { name: "Usuarios", icon: <Users className="h-4 w-4" /> },
     { name: "Configuración", icon: <Settings className="h-4 w-4" /> },
     { name: "Logs", icon: <Activity className="h-4 w-4" /> },
@@ -66,7 +71,7 @@ type SidebarProps = {
 }
 
 export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, userProfile }: SidebarProps) {
-  const userRole = (userProfile?.rol as Role) || "USUARIO"
+  const userRole = (userProfile?.rol as Role) || "Usuario"
 
   const renderMenuItems = (role: Role) => {
     return (
@@ -97,13 +102,12 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, userProfile }
 
   return (
     <aside
-      className={`fixed top-16 left-0 z-40 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 transform transition-all duration-300 ease-in-out overflow-y-auto lg:sticky ${
-        isSidebarOpen ? "w-64 translate-x-0" : "w-20 translate-x-0"
-      }`}
-    >
+      className={`fixed top-16 left-0 z-40 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 transform transition-all duration-300 ease-in-out overflow-y-auto lg:sticky 
+        ${isSidebarOpen ? "w-64 translate-x-0" : "w-20 translate-x-0"}`}>
+          
       <nav className={`px-4 py-6 ${isSidebarOpen ? "" : "px-2"}`}>
         {isSidebarOpen ? (
-          userRole === "ADMIN" ? renderAdminMenu() : renderMenuItems(userRole)
+          userRole === "Administrador" ? renderAdminMenu() : renderMenuItems(userRole)
         ) : (
           <div className="flex flex-col items-center space-y-4">
             {Object.keys(roleMenuItems).map((role) => (

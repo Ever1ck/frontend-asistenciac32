@@ -8,7 +8,7 @@ import Link from "next/link"
 
 type Role = "Usuario"| "Docente" | "Auxiliar" | "Secretaria" | "Innovacion" | "Subdirector" | "Director" | "Administrador"
 
-type Module = "Usuario" | "Docente" | "Auxiliar" | "Secretaria" | "Innovacion" | "Subdirector"| "Director" | "Administración"
+type Module = "Usuario" | "Docente" | "Auxiliar" | "Secretaria" | "Innovacion" | "Subdirector"| "Director" | "Administrador"
 
 const roleModules: Record<Role, Module[]> = {
   Usuario: ["Usuario"],
@@ -18,7 +18,7 @@ const roleModules: Record<Role, Module[]> = {
   Innovacion: ["Innovacion"],
   Subdirector: ["Subdirector"],
   Director: ["Director"],
-  Administrador: ["Usuario", "Docente", "Auxiliar", "Secretaria", "Innovacion", "Subdirector", "Director", "Administración"]
+  Administrador: ["Usuario", "Docente", "Auxiliar", "Secretaria", "Innovacion", "Subdirector", "Director", "Administrador"]
 }
 
 export default function RoleBasedModules() {

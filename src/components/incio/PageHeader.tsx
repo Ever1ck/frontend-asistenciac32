@@ -6,14 +6,14 @@ interface PageHeaderProps {
     imageAlt: string
 }
 
-export default function PageHeader({ title, imageSrc, imageAlt }: PageHeaderProps) {
+export default function PageHeader({ title, imageAlt }: PageHeaderProps) {
     return (
-        <div className="relative w-full h-[300px] mb-8">
+        <div className="relative w-full h-[300px] mb-8 mt-[80px]">
             <Image
-                src={imageSrc}
+                src={'/carousel/3.jpg'}
                 alt={imageAlt}
-                layout="fill"
-                objectFit="cover"
+                fill
+                style={{ objectFit: "cover" }}
                 className="brightness-50"
             />
             <div className="absolute inset-0 flex items-center justify-center">

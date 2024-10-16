@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/hooks/use-toast"
 
-type Role = "USUARIO" | "CAJA" | "DIRECTOR" | "SECRETARIA" | "MESA_PARTES" | "SIAGIE" | "ADMIN"
+type Role = "Usuario" | "Docente" | "Auxiliar" | "Secretaria" | "Innovacion" | "Subdirector" | "Director" | "Administrador"
 
 type Module = {
   id: string
@@ -19,20 +19,22 @@ type Module = {
 }
 
 const initialRoleModules: Record<Role, Module[]> = {
-  USUARIO: [{ id: "1", name: "Usuario", url: "/portal/portal-usuario" }],
-  CAJA: [{ id: "2", name: "Caja", url: "/portal/portal-caja" }],
-  DIRECTOR: [{ id: "3", name: "Director", url: "/portal/portal-director" }],
-  SECRETARIA: [{ id: "4", name: "Secretaria", url: "/portal/portal-secretaria" }],
-  MESA_PARTES: [{ id: "5", name: "Mesa de Partes", url: "/portal/portal-mesa-de-partes" }],
-  SIAGIE: [{ id: "6", name: "SIAGIE", url: "/portal/portal-siagie" }],
-  ADMIN: [
+  Usuario: [{ id: "1", name: "Usuario", url: "/portal/portal-usuario" }],
+  Docente: [{ id: "2", name: "Docente", url: "/portal/portal-docente" }],
+  Auxiliar: [{ id: "3", name: "Auxiliar", url: "/portal/portal-auxiliar" }],
+  Secretaria: [{ id: "4", name: "Secretaria", url: "/portal/portal-secretaria" }],
+  Innovacion: [{ id: "5", name: "Innovacion", url: "/portal/portal-innovacion" }],
+  Subdirector: [{ id: "6", name: "Subdirector", url: "/portal/portal-subdirector" }],
+  Director: [{ id: "7", name: "Director", url: "/portal/portal-director" }],
+  Administrador: [
     { id: "1", name: "Usuario", url: "/portal/portal-usuario" },
-    { id: "2", name: "Caja", url: "/portal/portal-caja" },
-    { id: "3", name: "Director", url: "/portal/portal-director" },
+    { id: "2", name: "Docente", url: "/portal/portal-docente" },
+    { id: "3", name: "Auxiliar", url: "/portal/portal-auxiliar" },
     { id: "4", name: "Secretaria", url: "/portal/portal-secretaria" },
-    { id: "5", name: "Mesa de Partes", url: "/portal/portal-mesa-de-partes" },
-    { id: "6", name: "SIAGIE", url: "/portal/portal-siagie" },
-    { id: "7", name: "Administración", url: "/portal/portal-administracion" }
+    { id: "5", name: "Innovacion", url: "/portal/portal-innovacion" },
+    { id: "6", name: "Subdirector", url: "/portal/portal-subdirector" },
+    { id: "7", name: "Director", url: "/portal/portal-director" },
+    { id: "8", name: "Administrador", url: "/portal/portal-administrador" }
   ]
 }
 
