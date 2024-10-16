@@ -8,14 +8,14 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CalendarIcon, PlusIcon, EyeIcon, PencilIcon, TrashIcon } from 'lucide-react'
+import { PlusIcon, EyeIcon, PencilIcon, TrashIcon } from 'lucide-react'
 import { toast } from "@/hooks/use-toast"
 
 interface Entrada {
-  id: number;
-  titulo: string;
-  tipo_entrada: string;
-  created_at: string;
+    id: number;
+    titulo: string;
+    tipo_entrada: string;
+    created_at: string;
 }
 
 export default function EntradasAdminPage() {

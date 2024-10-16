@@ -58,24 +58,7 @@ export default function Navbar() {
         <nav className="hidden md:flex space-x-4">
           <Link href="/" className="hover:text-blue-200 transition-colors duration-200">Inicio</Link>
           <Link href="/noticias" className="hover:text-blue-200 transition-colors duration-200">Noticias</Link>
-          <div className="relative group">
-            <button
-              className="flex items-center hover:text-blue-200 transition-colors duration-200"
-              onClick={handleSubMenuToggle}
-            >
-              Nosotros <ChevronDown className="ml-1 h-4 w-4" />
-            </button>
-            {isSubMenuOpen && (
-              <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
-                <div className="py-1">
-                  <Link href="/nosotros?section=mision-vision" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Misión y Visión</Link>
-                  <Link href="/nosotros?section=lema" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Lema</Link>
-                  <Link href="/nosotros?section=valores" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Valores</Link>
-                  <Link href="/nosotros?section=historia" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Historia</Link>
-                </div>
-              </div>
-            )}
-          </div>
+          <Link href="/nosotros" className="hover:text-blue-200 transition-colors duration-200">Nosotros</Link>
           <Link href="/matricula" className="hover:text-blue-200 transition-colors duration-200">Matrícula</Link>
           <Link href="/contactenos" className="hover:text-blue-200 transition-colors duration-200">Contáctenos</Link>
         </nav>

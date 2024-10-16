@@ -19,13 +19,11 @@ export default function Nosotros() {
     return (
         <div>
             <PageHeader
-                title="Contactenos"
+                title="Sobre Nosotros"
                 imageSrc="/images/noticias-header.jpg"
                 imageAlt="Estudiantes de Comercio 32"
             />
-            <div className='flex-grow container mx-auto px-4 py-8 relative mt-[80px]'>
-                <h1 className="text-4xl font-bold mb-8 text-center ">Sobre Nosotros</h1>
-
+            <div className='flex-grow container mx-auto px-4 py-8 relative'>
                 <section id="mision-vision" className="mb-16 bg-white rounded-lg shadow-md p-6">
                     <h2 className="text-3xl font-bold mb-6 text-blue-600 text-center">Misión y Visión</h2> <div className="space-y-6">
                         <div>
