@@ -23,7 +23,7 @@ export default function Carousel() {
   }, [])
 
   return (
-    <div className="relative w-full h-64 md:h-[calc(100vh-124px)] mt-[80px]">
+    <div className="relative w-full h-64 md:h-[calc(100vh-300px)] mt-[80px]">
       {images.map((src, index) => (
         <div
           key={src}
