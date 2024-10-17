@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { Menu, ChevronDown, X } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 
+const logoc32 = '/logoc.png'
+
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -42,7 +44,7 @@ export default function Navbar() {
         <div className="flex items-center">
           <div className={`relative transition-all duration-300 ${isScrolled ? 'h-10 w-10 md:h-16 md:w-16' : 'h-16 w-16 md:h-24 md:w-24'}`}>
             <Image
-              src="/logoc.png"
+              src={logoc32}
               alt="Logo"
               sizes="(max-width: 768px) 40px, 96px"
               fill
