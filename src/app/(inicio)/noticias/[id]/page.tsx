@@ -73,7 +73,7 @@ export default function NoticiaPage() {
   return (
     <div className="container mx-auto p-4 mt-[124px]">
       <div className="flex flex-col md:flex-row gap-8">
-        <main className="w-full md:w-3/4">
+        <div className="w-full md:w-3/4">
           <h1 className="text-3xl font-bold mb-4">{entrada.titulo}</h1>
           {entrada.portada_url && (
             <div className="mb-4 relative h-[300px]">
@@ -113,10 +113,8 @@ export default function NoticiaPage() {
               Compartir
             </Button>
           </div>
-        </main>
-        <aside className="w-full md:w-1/4">
-          <EventsSection />
-        </aside>
+        </div>
+        <EventsSection />
       </div>
     </div>
   )

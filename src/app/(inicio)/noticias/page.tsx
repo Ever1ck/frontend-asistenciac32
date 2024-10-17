@@ -1,5 +1,6 @@
 import PageHeader from '@/components/incio/PageHeader'
 import NewsSection from '@/components/incio/NewSection'
+import EventsSection from '@/components/incio/EventsSection'
 
 export default function NoticiasPage() {
   return (
@@ -11,6 +12,7 @@ export default function NoticiasPage() {
       />
       <div className="container mx-auto px-4 py-8">
         <NewsSection />
+        <EventsSection />
       </div>
     </div>
   )
