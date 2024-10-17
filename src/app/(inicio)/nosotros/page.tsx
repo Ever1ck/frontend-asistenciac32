@@ -1,21 +1,6 @@
-'use client'
-import { useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
 import PageHeader from '@/components/incio/PageHeader'
 
 export default function Nosotros() {
-    const searchParams = useSearchParams()
-
-    useEffect(() => {
-        const hash = searchParams.get('section')
-        if (hash) {
-            const element = document.getElementById(hash)
-            if (element) {
-                element.scrollIntoView({ behavior: 'smooth' })
-            }
-        }
-    }, [searchParams])
-
     return (
         <div>
             <PageHeader
