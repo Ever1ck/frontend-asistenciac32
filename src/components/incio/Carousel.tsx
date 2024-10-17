@@ -40,15 +40,15 @@ export default function Carousel() {
         </div>
       ))}
       <Button
-        variant="ghost"
-        className="absolute left-2 top-1/2 transform -translate-y-1/2 text-white"
+        variant="ghost" size="icon"
+        className="absolute left-2 md:left-16 top-1/2 transform -translate-y-1/2"
         onClick={prevSlide}
       >
         <ChevronLeft className="h-6 w-6" />
       </Button>
       <Button
-        variant="ghost"
-        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white"
+        variant="ghost" size="icon"
+        className="absolute right-2 md:right-16 top-1/2 transform -translate-y-1/2"
         onClick={nextSlide}
       >
         <ChevronRight className="h-6 w-6" />
