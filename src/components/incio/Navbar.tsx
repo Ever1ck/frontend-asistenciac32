@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Menu, ChevronDown, X } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 
-const logoc32 = '/logoc.png'
+const logoc32 = '/logoc32.png'
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
