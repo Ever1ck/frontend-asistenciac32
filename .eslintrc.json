@@ -4,7 +4,9 @@
               "eslint:recommended",
               "plugin:@typescript-eslint/eslint-recommended",
               "plugin:@typescript-eslint/recommended"] ,
-  "rules": { "@typescript-eslint/no-empty-object-type": "off" },
+  "rules": {  "@typescript-eslint/no-empty-object-type": "off",
+              "react/no-unescaped-entities": "off",
+              "@next/next/no-page-custom-font": "off" },
   "parser": "@typescript-eslint/parser"
 }
 
