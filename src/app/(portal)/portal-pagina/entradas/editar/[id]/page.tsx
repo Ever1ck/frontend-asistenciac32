@@ -19,7 +19,15 @@ export default function EditarEntrada() {
     const { data: session } = useSession()
     const router = useRouter()
     const params = useParams()
-    const [userProfile, setUserProfile] = useState(null)
+    interface UserProfile {
+        persona: {
+            nombres: string;
+            apellido_paterno: string;
+        };
+        id: number;
+    }
+
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
     const [formData, setFormData] = useState({
         titulo: '',
         portada: null as File | null,
@@ -161,11 +169,11 @@ export default function EditarEntrada() {
             return
         }
 
-        const updatedFields = {}
+        const updatedFields: Record<string, unknown> = {}
 
         Object.keys(formData.changed).forEach(key => {
             if (formData.changed[key]) {
-                updatedFields[key] = formData[key]
+                updatedFields[key] = formData[key as keyof typeof formData]
             }
         })
 
