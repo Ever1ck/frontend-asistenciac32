@@ -9,7 +9,7 @@ import Sidebar from "@/components/portal/Sidebar"
 interface Persona {
   id: number;
   dni: string;
-  nombre: string;
+  nombres: string;
   apellido_paterno: string;
   apellido_materno: string;
   fecha_nacimiento: string;
