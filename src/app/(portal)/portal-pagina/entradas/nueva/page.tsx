@@ -17,13 +17,21 @@ const ReactQuill = dynamic(() => import('react-quill'), { ssr: false })
 export default function BlogEditor() {
     const { data: session } = useSession()
     const router = useRouter()
-    const [userProfile, setUserProfile] = useState(null)
+    interface UserProfile {
+        id: number;
+        persona: {
+            nombres: string;
+            apellido_paterno: string;
+        };
+    }
+
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
     const [formData, setFormData] = useState({
         titulo: '',
         portada: null as File | null,
         portada_preview: '',
         contenido: '',
-        usuario_id: null,
+        usuario_id: null as number | null,
         tipo_entrada: 'Noticia',
     })
 
@@ -108,7 +116,12 @@ export default function BlogEditor() {
         const formDataToSend = new FormData()
         formDataToSend.append('titulo', formData.titulo)
         formDataToSend.append('contenido', formData.contenido)
-        formDataToSend.append('usuario_id', formData.usuario_id.toString())
+        if (formData.usuario_id !== null) {
+            formDataToSend.append('usuario_id', formData.usuario_id.toString())
+        } else {
+            console.error('Usuario ID is null')
+            return
+        }
         formDataToSend.append('tipo_entrada', formData.tipo_entrada)
         if (formData.portada) {
             formDataToSend.append('file', formData.portada)
