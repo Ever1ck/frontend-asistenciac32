@@ -3,7 +3,7 @@ import Carousel from '@/components/incio/Carousel'
 import SocialButtons from '@/components/incio/SocialButtons'
 import NewsSection from '@/components/incio/NewSection'
 import EventsSection from '@/components/incio/EventsSection'
-import React from 'react';
+import FeaturedLinks from '@/components/incio/FeaturedLinks'
 
 export default function Home() {
   return (
@@ -13,8 +13,13 @@ export default function Home() {
       <main className="flex-grow container mx-auto px-4 py-8 relative">
         <SocialButtons />
         <div className="flex flex-col md:flex-row gap-8">
-          <NewsSection />
-          <EventsSection />
+          <div className="w-full">
+            <NewsSection />
+          </div>
+          <div className="w-full md:w-1/4">
+            <EventsSection />
+            <FeaturedLinks />
+          </div>
         </div>
       </main>
     </div>

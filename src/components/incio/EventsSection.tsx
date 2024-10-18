@@ -35,7 +35,7 @@ export default function EventsSection() {
   }
 
   return (
-    <aside className="w-full md:w-1/4">
+    <aside className="w-full">
       <h2 className="text-2xl font-bold mb-4">Próximos Eventos</h2>
       <Card className="p-4">
         {eventos.length > 0 ? (

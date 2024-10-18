@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import 'react-quill/dist/quill.snow.css'
 import { Button } from "@/components/ui/button"
@@ -15,10 +15,9 @@ import { toast } from "@/hooks/use-toast"
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false })
 
-export default function EditarEntrada() {
+export default function EditarEntrada({ params }: { params: { id: string } }) {
     const { data: session } = useSession()
     const router = useRouter()
-    const params = useParams()
     interface UserProfile {
         persona: {
             nombres: string;
@@ -79,7 +78,7 @@ export default function EditarEntrada() {
                             contenido: entrada.contenido,
                             tipo_entrada: entrada.tipo_entrada,
                             portada_preview: `${process.env.NEXT_PUBLIC_BACKEND_IMAGES}/${entrada.portada_url}`,
-                            changed: {} // Initialize changed object
+                            changed: {}
                         }))
                     }
                 } catch (error) {
@@ -169,11 +168,18 @@ export default function EditarEntrada() {
             return
         }
 
-        const updatedFields: Record<string, unknown> = {}
+        const formDataToSend = new FormData()
 
         Object.keys(formData.changed).forEach(key => {
             if (formData.changed[key]) {
-                updatedFields[key] = formData[key as keyof typeof formData]
+                if (key === 'portada' && formData.portada) {
+                    formDataToSend.append('file', formData.portada)
+                } else {
+                    const value = formData[key as keyof typeof formData];
+                    if (typeof value === 'string' || value instanceof Blob) {
+                        formDataToSend.append(key, value);
+                    }
+                }
             }
         })
 
@@ -182,9 +188,8 @@ export default function EditarEntrada() {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${session.user.accessToken}`,
-                    'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(updatedFields),
+                body: formDataToSend,
             })
 
             if (!response.ok) {

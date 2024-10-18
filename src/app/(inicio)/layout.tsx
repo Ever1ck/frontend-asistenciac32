@@ -20,8 +20,8 @@ export default function HomeLayout({
             <SocialButtons />
             {children}
           </main>
-          <footer className="bg-gray-200 p-4 mt-8">
-            <div className="container mx-auto text-center">
+          <footer className="bg-[#2B6BB3] p-4 mt-8 text-white">
+            <div className="container mx-auto text-center ">
               <p>&copy; 2024 Comercio 32 MHC. Todos los derechos reservados.</p>
             </div>
           </footer>

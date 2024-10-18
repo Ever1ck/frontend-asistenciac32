@@ -2,11 +2,38 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Menu, ChevronDown, X } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 
 const logoc32 = '/logoc32.png'
+
+interface NavLinkProps {
+  href: string
+  children: React.ReactNode
+  className?: string
+  onClick?: () => void
+}
+
+const NavLink = ({ href, children, className = '', onClick }: NavLinkProps) => {
+  const pathname = usePathname()
+  const isActive = pathname === href
+
+  return (
+    <Link
+      href={href}
+      className={`relative font-bold uppercase hover:text-yellow-200 transition-colors duration-200 group ${className} ${
+        isActive ? 'text-yellow-300' : 'text-white'
+      } text-sm`}
+      onClick={onClick}
+    >
+      {children}
+      <span className={`absolute left-0 -bottom-3 w-full h-0.5 bg-yellow-300 transition-all duration-300 origin-bottom ${
+        isActive ? 'scale-y-100' : 'scale-y-0'
+      } group-hover:scale-y-100 hidden md:block`}></span>
+    </Link>
+  )
+}
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -57,12 +84,12 @@ export default function Navbar() {
             Comercio 32 MHC
           </h1>
         </div>
-        <nav className="hidden md:flex space-x-4">
-          <Link href="/" className="hover:text-blue-200 transition-colors duration-200">Inicio</Link>
-          <Link href="/noticias" className="hover:text-blue-200 transition-colors duration-200">Noticias</Link>
-          <Link href="/nosotros" className="hover:text-blue-200 transition-colors duration-200">Nosotros</Link>
-          <Link href="/matricula" className="hover:text-blue-200 transition-colors duration-200">Matrícula</Link>
-          <Link href="/contactenos" className="hover:text-blue-200 transition-colors duration-200">Contáctenos</Link>
+        <nav className="hidden md:flex space-x-6">
+          <NavLink href="/">Inicio</NavLink>
+          <NavLink href="/noticias">Noticias</NavLink>
+          <NavLink href="/nosotros">Nosotros</NavLink>
+          <NavLink href="/matricula">Matrícula</NavLink>
+          <NavLink href="/contactenos">Contáctenos</NavLink>
         </nav>
         <Button variant="ghost" className="md:hidden" onClick={handleMobileMenuToggle}>
           {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -70,28 +97,12 @@ export default function Navbar() {
       </div>
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-blue-600 py-2">
-          <button onClick={() => handleLinkClick('/')} className="block w-full text-left px-4 py-2 hover:bg-blue-700">Inicio</button>
-          <button onClick={() => handleLinkClick('/noticias')} className="block w-full text-left px-4 py-2 hover:bg-blue-700">Noticias</button>
-          <div>
-            <button
-              className="flex items-center justify-between w-full px-4 py-2 hover:bg-blue-700"
-              onClick={handleSubMenuToggle}
-            >
-              Nosotros
-              <ChevronDown className="h-4 w-4" />
-            </button>
-            {isSubMenuOpen && (
-              <div className="bg-blue-700 py-2">
-                <button onClick={() => handleLinkClick('/nosotros?section=mision-vision')} className="block w-full text-left px-8 py-2 hover:bg-blue-800">Misión y Visión</button>
-                <button onClick={() => handleLinkClick('/nosotros?section=lema')} className="block w-full text-left px-8 py-2 hover:bg-blue-800">Lema</button>
-                <button onClick={() => handleLinkClick('/nosotros?section=valores')} className="block w-full text-left px-8 py-2 hover:bg-blue-800">Valores</button>
-                <button onClick={() => handleLinkClick('/nosotros?section=historia')} className="block w-full text-left px-8 py-2 hover:bg-blue-800">Historia</button>
-              </div>
-            )}
-          </div>
-          <button onClick={() => handleLinkClick('/matricula')} className="block w-full text-left px-4 py-2 hover:bg-blue-700">Matrícula</button>
-          <button onClick={() => handleLinkClick('/contactenos')} className="block w-full text-left px-4 py-2 hover:bg-blue-700">Contáctenos</button>
+        <div className="md:hidden bg-[#22558F] py-2">
+          <NavLink href="/" className="block w-full px-4 py-3 hover:bg-blue-700 border-b border-blue-500" onClick={() => handleLinkClick('/')}>Inicio</NavLink>
+          <NavLink href="/noticias" className="block w-full px-4 py-3 hover:bg-blue-700 border-b border-blue-500" onClick={() => handleLinkClick('/noticias')}>Noticias</NavLink>
+          <NavLink href="/nosotros" className="block w-full px-4 py-3 hover:bg-blue-700 border-b border-blue-500" onClick={() => handleLinkClick('/nosotros')}>Nosotros</NavLink>
+          <NavLink href="/matricula" className="block w-full px-4 py-3 hover:bg-blue-700 border-b border-blue-500" onClick={() => handleLinkClick('/matricula')}>Matrícula</NavLink>
+          <NavLink href="/contactenos" className="block w-full px-4 py-3 hover:bg-blue-700" onClick={() => handleLinkClick('/contactenos')}>Contáctenos</NavLink>
         </div>
       )}
     </header>

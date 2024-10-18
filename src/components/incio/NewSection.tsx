@@ -37,7 +37,7 @@ export default function NewsSection() {
   }
 
   return (
-    <section className="w-full md:w-3/4">
+    <section className="w-full">
       <h2 className="text-2xl font-bold mb-4">Últimas Noticias</h2>
       <div className="space-y-4">
         {noticias.length > 0 ? (
