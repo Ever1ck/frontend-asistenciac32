@@ -11,6 +11,8 @@ import {
 import { signOut } from "next-auth/react"
 import Link from "next/link"
 
+const logo = "/logoc32.png"
+
 interface Persona {
   id: number;
   dni: string;
@@ -54,7 +56,7 @@ export default function Header({ toggleSidebar, theme, setTheme, userProfile }: 
         </Button>
         <div className="h-10 flex items-center ml-2 text-xl font-semibold">
           <Image
-            src='/logoc.png'
+            src={logo}
             alt="Picture of the author"
             sizes="100vw"
             style={{

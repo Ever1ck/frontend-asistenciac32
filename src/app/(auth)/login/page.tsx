@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useRouter } from "next/navigation";
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Correo electrónico inválido" }),
@@ -21,28 +22,30 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
-  const [isLoading] = useState(false)
-  const { register, formState: { errors } } = useForm<LoginFormValues>({
+  const [isLoading, setIsLoading] = useState(false)
+  const [backendError, setBackendError] = useState<string | null>(null)
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema)
   })
   const router = useRouter()
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const onSubmit = async (data: LoginFormValues) => {
+    setIsLoading(true)
+    setBackendError(null)
 
     const responseNextAuth = await signIn('credentials', {
-      email: event.currentTarget.email.value,
-      password: event.currentTarget.password.value,
+      email: data.email,
+      password: data.password,
       redirect: false,
     })
 
     if (responseNextAuth?.error) {
-      console.error(responseNextAuth.error.split(','));
-      return;
+      setBackendError(responseNextAuth.error)
+      setIsLoading(false)
+      return
     }
-    router.push('/dashboard');
+    router.push('/dashboard')
   }
-
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -56,7 +59,12 @@ export default function LoginPage() {
             <CardTitle className="text-2xl font-bold text-center">Iniciar Sesión</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {backendError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{backendError}</AlertDescription>
+                </Alert>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Correo Electrónico</Label>
                 <Input id="email" type="email" {...register('email')} />
@@ -70,7 +78,7 @@ export default function LoginPage() {
               <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
                 ¿Olvidaste tu contraseña?
               </Link>
-              <Button type="submit" className="w-full" disabled={isLoading} >
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? 'Cargando...' : 'Iniciar Sesión'}
               </Button>
             </form>
