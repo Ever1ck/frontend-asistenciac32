@@ -1,5 +1,5 @@
 import PageHeader from '@/components/incio/PageHeader'
-import NewsSection from '@/components/incio/NewSection'
+import NewsSection from '@/components/incio/NuevasEntradas'
 import EventsSection from '@/components/incio/EventsSection'
 
 export default function NoticiasPage() {
