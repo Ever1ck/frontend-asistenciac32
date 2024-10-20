@@ -4,6 +4,7 @@ import SocialButtons from '@/components/incio/SocialButtons'
 import NewsSection from '@/components/incio/NewSection'
 import EventsSection from '@/components/incio/EventsSection'
 import FeaturedLinks from '@/components/incio/FeaturedLinks'
+import EntradasSection from '@/components/incio/NuevasEntradas'
 
 export default function Home() {
   return (
@@ -14,7 +15,7 @@ export default function Home() {
         <SocialButtons />
         <div className="flex flex-col md:flex-row gap-8">
           <div className="w-full">
-            <NewsSection />
+            < EntradasSection/>
           </div>
           <div className="w-full md:w-1/4">
             <EventsSection />

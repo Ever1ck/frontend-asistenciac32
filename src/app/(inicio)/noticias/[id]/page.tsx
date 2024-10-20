@@ -114,7 +114,10 @@ export default function NoticiaPage() {
             </Button>
           </div>
         </div>
-        <EventsSection />
+        <div className='w-1/3'>
+          <EventsSection />
+        </div>
+
       </div>
     </div>
   )

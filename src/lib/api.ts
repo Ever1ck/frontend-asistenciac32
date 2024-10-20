@@ -30,12 +30,24 @@ export interface Evento {
     };
 }
 
-export async function getNoticias(): Promise<Noticia[]> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/entradas`);
-    if (!res.ok) {
-        throw new Error('Fallo en buscar noticias');
+export async function getNoticias(): Promise<Noticia[] | null> {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+    if (!backendUrl) {
+        console.error('NEXT_PUBLIC_BACKEND_URL is not defined in environment variables');
+        return null;
     }
-    return res.json();
+
+    try {
+        const res = await fetch(`${backendUrl}/entradas`, { cache: 'no-store' });
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+    } catch (error) {
+        console.error('Error fetching noticias:', error);
+        return null;
+    }
 }
 
 export async function getEventos(): Promise<Evento[]> {
