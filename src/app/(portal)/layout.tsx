@@ -63,7 +63,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return <div>Cargando...</div>
   }
 
   if (error) {

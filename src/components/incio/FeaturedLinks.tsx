@@ -11,7 +11,7 @@ const featuredLinks: FeaturedLink[] = [
     { name: 'SIAGIE', url: 'https://siagie.minedu.gob.pe/inicio/', imageSrc: '/siagie-logo.jpg' },
     { name: 'PerúEduca', url: 'https://www.perueduca.pe/#/home', imageSrc: '/logo-perueduca.png' },
     { name: 'UGEL San Román', url: 'https://ugelsanroman.gob.pe/', imageSrc: '/logo-san-roman.png' },
-    { name: 'Directorio', url: '/directorio', imageSrc: '/images/directorio-icon.png' },
+    { name: 'Directorio', url: '/directorio', imageSrc: '/coding.png' },
     // Añade más enlaces según sea necesario
 ]
 

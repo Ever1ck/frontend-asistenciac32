@@ -101,7 +101,7 @@ export default function Header({ toggleSidebar, theme, setTheme, userProfile }: 
             <span>{theme === "dark" ? "Tema Claro" : "Tema Oscuro"}</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => signOut()}>
+          <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/login', redirect:true })}>
             <LogOut className="mr-2 h-4 w-4" />
             <span>Cerrar Sesión</span>
           </DropdownMenuItem>
