@@ -146,7 +146,7 @@ export default function RoleBasedModules() {
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900">
-              Módulos disponibles para {userProfile.rol}
+              Módulos disponibles
             </h1>
           </div>
           <div className="bg-white shadow rounded-lg p-6">
@@ -210,9 +210,9 @@ export default function RoleBasedModules() {
         size="icon"
         onClick={toggleSidebar}
         aria-label={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
-        className={`fixed top-4 z-50 bg-blue-900 text-white  hover:text-blue-900 transition-all duration-300 ${
+        className={`fixed top-12 z-50 bg-blue-900 text-white  hover:text-blue-900 transition-all duration-300 ${
           sidebarOpen 
-            ? 'right-64' 
+            ? 'right-60 border-none' 
             : 'right-0 rounded-r-none rounded-l-full'
         }`}
       >
