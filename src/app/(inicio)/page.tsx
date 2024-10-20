@@ -1,7 +1,6 @@
 import Navbar from '@/components/incio/Navbar'
 import Carousel from '@/components/incio/Carousel'
 import SocialButtons from '@/components/incio/SocialButtons'
-import NewsSection from '@/components/incio/NewSection'
 import EventsSection from '@/components/incio/EventsSection'
 import FeaturedLinks from '@/components/incio/FeaturedLinks'
 import EntradasSection from '@/components/incio/NuevasEntradas'
