@@ -1,38 +1,23 @@
-'use client'
-import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Card } from "@/components/ui/card"
-import { Evento, getEventos } from '@/lib/api'
 
-export default function EventsSection() {
-  const [eventos, setEventos] = useState<Evento[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+interface Evento {
+  id: number;
+  titulo: string;
+  fecha: string;
+  portada_url: string;
+}
 
-  useEffect(() => {
-    async function fetchEventos() {
-      try {
-        const data = await getEventos()
-        // Ordenar los eventos por fecha, de más reciente a más antiguo
-        const sortedEventos = data.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
-        setEventos(sortedEventos)
-        setLoading(false)
-      } catch {
-        setError('Error al cargar los eventos')
-        setLoading(false)
-      }
-    }
-    fetchEventos()
-  }, [])
-
-  if (loading) return <div>Cargando eventos...</div>
-  if (error) return <div>{error}</div>
-
-  function stripHtml(html: string) {
-    const tmp = document.createElement('DIV')
-    tmp.innerHTML = html
-    return tmp.textContent || tmp.innerText || ''
+async function getEventos(): Promise<Evento[]> {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/entradas/eventos`, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error('Failed to fetch eventos');
   }
+  return res.json();
+}
+
+export default async function EventsSection() {
+  const eventos = await getEventos();
 
   return (
     <aside className="w-full">
@@ -54,11 +39,6 @@ export default function EventsSection() {
                 <div>
                   <h4 className="font-semibold">{evento.titulo}</h4>
                   <p className="text-sm text-gray-600">{new Date(evento.fecha).toLocaleDateString()}</p>
-                  {evento.contenido && (
-                    <p className="text-sm text-gray-600 mt-1">
-                      {stripHtml(evento.contenido).substring(0, 50)}...
-                    </p>
-                  )}
                 </div>
               </li>
             ))}

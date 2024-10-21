@@ -16,7 +16,7 @@ export default function Home() {
           <div className="w-full">
             < EntradasSection/>
           </div>
-          <div className="w-full md:w-1/4">
+          <div className="w-full md:w-1/3">
             <EventsSection />
             <FeaturedLinks />
           </div>

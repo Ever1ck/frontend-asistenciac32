@@ -25,10 +25,14 @@ export default async function NewsSection() {
         );
     }
 
+    if (noticias && noticias.length > 0) {
+        noticias.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+    }
+
     return (
         <section className="w-full">
             <h2 className="text-2xl font-bold mb-4">Últimas Noticias</h2>
-            <div className="space-y-4">
+            <div className="space-y-6">
                 {noticias.length > 0 ? (
                     noticias.map((noticia, index) => (
                         <Card key={noticia.id} className="p-4 flex flex-col md:flex-row">
