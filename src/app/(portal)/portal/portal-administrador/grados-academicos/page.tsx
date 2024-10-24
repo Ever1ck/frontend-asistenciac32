@@ -411,7 +411,7 @@ export default function GradoAcademicoView() {
                   <TableCell>{grado.turno}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button onClick={() => router.push(`/portal-admin/grados-academicos/${grado.id}`)}>Ver</Button>
+                      <Button onClick={() => router.push(`/portal/portal-administrador/grados-academicos/${grado.id}`)}>Ver</Button>
                       <Button onClick={() => handleEdit(grado)}>Editar</Button>
                       <Button variant="destructive" onClick={() => handleDelete(grado)}>Eliminar</Button>
                     </div>

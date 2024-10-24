@@ -1,12 +1,8 @@
+'use client'
+
+import { useState, useEffect, useRef, TouchEvent } from 'react'
 import Image from 'next/image'
-import { Card, CardContent } from "@/components/ui/card"
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel"
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface Evento {
   id: number;
@@ -16,53 +12,140 @@ interface Evento {
 }
 
 async function getEventos(): Promise<Evento[]> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/entradas/eventos`, { cache: 'no-store' });
-  if (!res.ok) {
-    throw new Error('Failed to fetch eventos');
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/entradas/eventos`, { cache: 'no-store' });
+    if (!res.ok) {
+      throw new Error('Failed to fetch eventos');
+    }
+    return res.json();
+  } catch (error) {
+    console.error('Error fetching eventos:', error);
+    return [];
   }
-  return res.json();
 }
 
-export default async function CarouselComponent() {
-  const eventos = await getEventos();
-  const imagenElegida = '/images/imagen-elegida.jpg'; // Reemplaza esto con la ruta de tu imagen elegida
+const defaultImages = [
+  '/carousel/1.jpg',
+  '/carousel/2.jpeg',
+  '/carousel/4.jpg',
+  '/carousel/5.jpg',
+];
 
-  const carouselImages = [
-    { src: imagenElegida, alt: 'Imagen elegida' },
-    ...eventos.slice(0, 3).map(evento => ({
-      src: `${process.env.NEXT_PUBLIC_BACKEND_IMAGES}/${evento.portada_url}`,
-      alt: evento.titulo
-    }))
-  ];
+export default function Carousel() {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [slides, setSlides] = useState<string[]>([]);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
 
-  // Si no hay suficientes eventos, añade imágenes de respaldo
-  while (carouselImages.length < 4) {
-    carouselImages.push({ src: `/images/imagen-respaldo-${carouselImages.length}.jpg`, alt: 'Imagen de respaldo' });
-  }
+  useEffect(() => {
+    async function loadSlides() {
+      const eventos = await getEventos();
+      const imagenElegida = '/carousel/3.jpg'; // Reemplaza esto con la ruta de tu imagen elegida
+      
+      let carouselImages = [imagenElegida, ...defaultImages.slice(1)];
+
+      if (eventos.length > 0) {
+        const eventImages = eventos.map(evento => `${process.env.NEXT_PUBLIC_BACKEND_IMAGES}/${evento.portada_url}`);
+        carouselImages = [
+          imagenElegida,
+          ...eventImages,
+          ...defaultImages.slice(1 + eventImages.length)
+        ].slice(0, 5);
+      }
+
+      setSlides(carouselImages);
+    }
+
+    loadSlides();
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prevSlide) => (prevSlide + 1) % slides.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [slides.length]);
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
+  };
+
+  const nextSlide = () => {
+    setCurrentSlide((prevSlide) => (prevSlide + 1) % slides.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prevSlide) => (prevSlide - 1 + slides.length) % slides.length);
+  };
+
+  const handleTouchStart = (e: TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current - touchEndX.current > 75) {
+      nextSlide();
+    }
+
+    if (touchEndX.current - touchStartX.current > 75) {
+      prevSlide();
+    }
+  };
 
   return (
-    <Carousel className="w-full max-w-xs mx-auto">
-      <CarouselContent>
-        {carouselImages.map((image, index) => (
-          <CarouselItem key={index}>
-            <div className="p-1">
-              <Card>
-                <CardContent className="flex aspect-square items-center justify-center p-6">
-                  <Image
-                    src={image.src}
-                    alt={image.alt}
-                    width={300}
-                    height={300}
-                    objectFit="cover"
-                  />
-                </CardContent>
-              </Card>
-            </div>
-          </CarouselItem>
+    <div 
+      className="relative w-full h-[calc(100vh-124px)] overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {slides.map((slide, index) => (
+        <div
+          key={index}
+          className={`absolute top-0 left-0 w-full h-full transition-opacity duration-1000 ${
+            index === currentSlide ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          <Image
+            src={slide}
+            alt={`Slide ${index + 1}`}
+            layout="fill"
+            objectFit="cover"
+            priority={index === 0}
+          />
+        </div>
+      ))}
+      <button
+        className="absolute top-1/2 left-4 transform -translate-y-1/2 p-2 rounded-full bg-white bg-opacity-50 hover:bg-opacity-75 transition-all duration-300 focus:outline-none"
+        onClick={prevSlide}
+        aria-label="Previous slide"
+      >
+        <ChevronLeft size={24} className="text-gray-800" />
+      </button>
+      <button
+        className="absolute top-1/2 right-4 transform -translate-y-1/2 p-2 rounded-full bg-white bg-opacity-50 hover:bg-opacity-75 transition-all duration-300 focus:outline-none"
+        onClick={nextSlide}
+        aria-label="Next slide"
+      >
+        <ChevronRight size={24} className="text-gray-800" />
+      </button>
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+        {slides.map((_, index) => (
+          <button
+            key={index}
+            className={`w-3 h-3 rounded-full ${
+              index === currentSlide ? 'bg-white' : 'bg-gray-400'
+            } focus:outline-none`}
+            onClick={() => goToSlide(index)}
+            aria-label={`Go to slide ${index + 1}`}
+          />
         ))}
-      </CarouselContent>
-      <CarouselPrevious />
-      <CarouselNext />
-    </Carousel>
-  )
+      </div>
+    </div>
+  );
 }
