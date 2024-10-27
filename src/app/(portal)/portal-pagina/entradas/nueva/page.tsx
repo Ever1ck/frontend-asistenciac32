@@ -9,6 +9,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
 import Image from 'next/image'
 import { useDropzone } from 'react-dropzone'
 
@@ -33,6 +38,7 @@ export default function BlogEditor() {
         contenido: '',
         usuario_id: null as number | null,
         tipo_entrada: 'Noticia',
+        fecha_evento: new Date(),
     })
 
     useEffect(() => {
@@ -87,7 +93,17 @@ export default function BlogEditor() {
     }
 
     const handleTipoEntradaChange = (value: string) => {
-        setFormData(prev => ({ ...prev, tipo_entrada: value }))
+        setFormData(prev => ({ 
+            ...prev, 
+            tipo_entrada: value,
+            fecha_evento: value === 'Evento' ? prev.fecha_evento : new Date(),
+        }))
+    }
+
+    const handleDateChange = (date: Date | undefined) => {
+        if (date) {
+            setFormData(prev => ({ ...prev, fecha_evento: date }))
+        }
     }
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -126,6 +142,9 @@ export default function BlogEditor() {
         if (formData.portada) {
             formDataToSend.append('file', formData.portada)
         }
+        if (formData.tipo_entrada === 'Evento') {
+            formDataToSend.append('fecha_evento', formData.fecha_evento.toISOString())
+        }
 
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/entradas`, {
@@ -148,6 +167,10 @@ export default function BlogEditor() {
             console.error('Error al publicar la entrada:', error)
             // Aquí puedes manejar el error, por ejemplo, mostrando un mensaje al usuario
         }
+    }
+
+    const formatEventDate = (date: Date) => {
+        return format(date, "dd 'de' MMMM 'de' yyyy", { locale: es })
     }
 
     return (
@@ -187,6 +210,30 @@ export default function BlogEditor() {
                             <SelectItem value="Evento">Evento</SelectItem>
                         </SelectContent>
                     </Select>
+                    {formData.tipo_entrada === 'Evento' && (
+                        <div className="mb-4">
+                            <p className="mb-2">Fecha del evento:</p>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={`w-full justify-start text-left font-normal ${!formData.fecha_evento && "text-muted-foreground"}`}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {formData.fecha_evento ? formatEventDate(formData.fecha_evento) : <span>Selecciona una fecha</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={formData.fecha_evento}
+                                        onSelect={handleDateChange}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    )}
                     <div className="mb-4 h-auto overflow-y-auto">
                         <ReactQuill
                             theme="snow"
@@ -226,9 +273,14 @@ export default function BlogEditor() {
                         </h3>
                     </div>
                     <div className="flex justify-center items-center mb-4 space-x-4">
-                        <p className="text-sm text-gray-500">Fecha de publicación: {new Date().toLocaleDateString()}</p>
+                        <p className="text-sm text-gray-500">Fecha de publicación: {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: es })}</p>
                         <p className="text-sm text-gray-500">Publicado por: {userProfile?.persona?.nombres} {userProfile?.persona?.apellido_paterno}</p>
                     </div>
+                    {formData.tipo_entrada === 'Evento' && (
+                        <p className="text-sm text-gray-500 mb-4">
+                            Fecha del evento: {formatEventDate(formData.fecha_evento)}
+                        </p>
+                    )}
                     <div className="prose max-w-none flex-grow" dangerouslySetInnerHTML={{ __html: formData.contenido }} />
                     <p className="text-sm text-gray-500 text-center mt-4">{formData.tipo_entrada}</p>
                 </Card>

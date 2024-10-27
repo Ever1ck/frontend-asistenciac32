@@ -10,9 +10,12 @@ import { signOut } from "next-auth/react"
 
 const logo = "/logoc32.png"
 
-type Role = "Usuario"| "Docente" | "Auxiliar" | "Secretaria" | "Innovacion" | "Subdirector" | "Director" | "Administrador"
+type Role = "Usuario" | "Docente" | "Auxiliar" | "Secretaria" | "Innovacion" | "Subdirector" | "Director" | "Administrador"
 
-type Module = "Usuario" | "Docente" | "Auxiliar" | "Secretaria" | "Innovacion" | "Subdirector"| "Director" | "Administrador"
+type Module = {
+  id: string;
+  name: string;
+}
 
 type UserProfile = {
   id: number;
@@ -32,31 +35,27 @@ type UserProfile = {
   };
 }
 
-const roleModules: Record<Role, Module[]> = {
-  Usuario: ["Usuario"],
-  Docente: ["Docente"],
-  Auxiliar: ["Auxiliar"],
-  Secretaria: ["Secretaria"],
-  Innovacion: ["Innovacion"],
-  Subdirector: ["Subdirector"],
-  Director: ["Director"],
-  Administrador: ["Usuario", "Docente", "Auxiliar", "Secretaria", "Innovacion", "Subdirector", "Director", "Administrador"]
+type RoleModuleAssignment = {
+  id: string;
+  rol: Role;
+  modulos: string[];
 }
 
-const moduleIcons: Record<Module, React.ReactNode> = {
-  Usuario: <User />,
-  Docente: <Book />,
-  Auxiliar: <Home />,
-  Secretaria: <Briefcase />,
-  Innovacion: <PenTool />,
-  Subdirector: <Building2 />,
-  Director: <Building />,
-  Administrador: <Settings />
+const moduleIcons: Record<string, React.ReactNode> = {
+  usuario: <User />,
+  pagina: <Book />,
+  docente: <Home />,
+  auxiliar: <Briefcase />,
+  secretaria: <PenTool />,
+  innovacion: <Building2 />,
+  subdirector: <Building />,
+  director: <Settings />,
 }
 
 export default function RoleBasedModules() {
   const { data: session, status } = useSession()
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [userModules, setUserModules] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -64,33 +63,55 @@ export default function RoleBasedModules() {
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    const fetchUserProfileAndModules = async () => {
       if (status === "authenticated" && session?.user?.accessToken) {
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/profile`, {
+          console.log("Fetching user profile...")
+          const profileResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/profile`, {
             headers: {
               Authorization: `Bearer ${session.user.accessToken}`,
             },
           })
-          if (!response.ok) {
+          if (!profileResponse.ok) {
             throw new Error('Failed to fetch user profile')
           }
-          const data = await response.json()
-          setUserProfile(data)
+          const profileData = await profileResponse.json()
+          console.log("User profile data:", profileData)
+          setUserProfile(profileData)
+
+          console.log("Fetching user modules...")
+          const modulesResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/modulos`, {
+            headers: {
+              Authorization: `Bearer ${session.user.accessToken}`,
+            },
+          })
+          if (!modulesResponse.ok) {
+            throw new Error('Failed to fetch user modules')
+          }
+          const modulesData: RoleModuleAssignment[] = await modulesResponse.json()
+          console.log("User modules data:", modulesData)
+          
+          const userRoleModules = modulesData.find(assignment => assignment.rol === profileData.rol)
+          if (userRoleModules) {
+            setUserModules(userRoleModules.modulos)
+          } else {
+            console.log("No modules found for user role:", profileData.rol)
+          }
         } catch (err) {
-          setError('Error al cargar el perfil del usuario')
-          console.error(err)
+          console.error("Error fetching user data:", err)
+          setError('Error al cargar los datos del usuario')
         } finally {
           setIsLoading(false)
         }
       } else if (status === "unauthenticated") {
+        console.log("User is not authenticated")
         setError('Usuario no autenticado')
         setIsLoading(false)
       }
     }
 
     if (status !== "loading") {
-      fetchUserProfile()
+      fetchUserProfileAndModules()
     }
   }, [status, session])
 
@@ -140,6 +161,9 @@ export default function RoleBasedModules() {
     return <div className="text-center p-4">No se pudo determinar el perfil del usuario</div>
   }
 
+  console.log("Rendering with user profile:", userProfile)
+  console.log("Available modules:", userModules)
+
   return (
     <div className="min-h-screen bg-gray-100 flex">
       <div className={`flex-grow py-12 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${sidebarOpen ? 'lg:mr-64' : ''}`}>
@@ -151,16 +175,22 @@ export default function RoleBasedModules() {
           </div>
           <div className="bg-white shadow rounded-lg p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {roleModules[userProfile.rol].map((module) => (
-                <Link key={module} href={`/portal/portal-${module.toLowerCase().replace(/ /g, '-')}`} className="block">
-                  <Button 
-                    className="w-full h-24 text-lg font-semibold transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg flex flex-col items-center justify-center"
-                  >
-                    {moduleIcons[module]}
-                    <span className="mt-2">{module}</span>
-                  </Button>
-                </Link>
-              ))}
+              {userModules.length > 0 ? (
+                userModules.map((moduleId) => (
+                  <Link key={moduleId} href={`/portal-${moduleId.toLowerCase().replace(/ /g, '-')}`} className="block">
+                    <Button 
+                      className="w-full h-24 text-lg font-semibold transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg flex flex-col items-center justify-center"
+                    >
+                      {moduleIcons[moduleId.toLowerCase()] || <Settings />}
+                      <span className="mt-2">{moduleId}</span>
+                    </Button>
+                  </Link>
+                ))
+              ) : (
+                <div className="col-span-full text-center text-gray-500">
+                  No hay módulos disponibles para este usuario. (Rol: {userProfile.rol})
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -210,7 +240,7 @@ export default function RoleBasedModules() {
         size="icon"
         onClick={toggleSidebar}
         aria-label={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
-        className={`fixed top-12 z-50 bg-blue-900 text-white  hover:text-blue-900 transition-all duration-300 ${
+        className={`fixed top-12 z-50 bg-blue-900 text-white hover:text-blue-900 transition-all duration-300 ${
           sidebarOpen 
             ? 'right-60 border-none' 
             : 'right-0 rounded-r-none rounded-l-full'

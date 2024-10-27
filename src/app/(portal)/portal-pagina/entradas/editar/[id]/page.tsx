@@ -9,6 +9,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
 import Image from 'next/image'
 import { useDropzone } from 'react-dropzone'
 import { toast } from "@/hooks/use-toast"
@@ -34,6 +39,7 @@ export default function EditarEntrada({ params }: { params: { id: string } }) {
         contenido: '',
         usuario_id: null,
         tipo_entrada: 'Noticia',
+        fecha_evento: null as Date | null,
         changed: {} as Record<string, boolean>,
     })
 
@@ -78,6 +84,7 @@ export default function EditarEntrada({ params }: { params: { id: string } }) {
                             contenido: entrada.contenido,
                             tipo_entrada: entrada.tipo_entrada,
                             portada_preview: `${process.env.NEXT_PUBLIC_BACKEND_IMAGES}/${entrada.portada_url}`,
+                            fecha_evento: entrada.fecha_evento ? new Date(entrada.fecha_evento) : null,
                             changed: {}
                         }))
                     }
@@ -140,6 +147,16 @@ export default function EditarEntrada({ params }: { params: { id: string } }) {
         }))
     }
 
+    const handleDateChange = (date: Date | undefined) => {
+        if (date) {
+            setFormData(prev => ({ 
+                ...prev, 
+                fecha_evento: date,
+                changed: { ...prev.changed, fecha_evento: true }
+            }))
+        }
+    }
+
     const onDrop = useCallback((acceptedFiles: File[]) => {
         const file = acceptedFiles[0]
         if (file) {
@@ -174,6 +191,8 @@ export default function EditarEntrada({ params }: { params: { id: string } }) {
             if (formData.changed[key]) {
                 if (key === 'portada' && formData.portada) {
                     formDataToSend.append('file', formData.portada)
+                } else if (key === 'fecha_evento' && formData.fecha_evento) {
+                    formDataToSend.append('fecha_evento', formData.fecha_evento.toISOString())
                 } else {
                     const value = formData[key as keyof typeof formData];
                     if (typeof value === 'string' || value instanceof Blob) {
@@ -213,6 +232,10 @@ export default function EditarEntrada({ params }: { params: { id: string } }) {
         }
     }
 
+    const formatEventDate = (date: Date) => {
+        return format(date, "dd 'de' MMMM 'de' yyyy", { locale: es })
+    }
+
     return (
         <div className="container mx-auto p-4">
             <h1 className="text-3xl font-bold mb-4">Editar entrada</h1>
@@ -250,6 +273,30 @@ export default function EditarEntrada({ params }: { params: { id: string } }) {
                             <SelectItem value="Evento">Evento</SelectItem>
                         </SelectContent>
                     </Select>
+                    {formData.tipo_entrada === 'Evento' && (
+                        <div className="mb-4">
+                            <p className="mb-2">Fecha del evento:</p>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={`w-full justify-start text-left font-normal ${!formData.fecha_evento && "text-muted-foreground"}`}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {formData.fecha_evento ? formatEventDate(formData.fecha_evento) : <span>Selecciona una fecha</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={formData.fecha_evento || undefined}
+                                        onSelect={handleDateChange}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    )}
                     <div className="mb-4 h-auto overflow-y-auto">
                         <ReactQuill
                             theme="snow"
@@ -289,9 +336,14 @@ export default function EditarEntrada({ params }: { params: { id: string } }) {
                         </h3>
                     </div>
                     <div className="flex justify-center items-center mb-4 space-x-4">
-                        <p className="text-sm text-gray-500">Fecha de publicación: {new Date().toLocaleDateString()}</p>
+                        <p className="text-sm text-gray-500">Fecha de publicación: {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: es })}</p>
                         <p className="text-sm text-gray-500">Publicado por: {userProfile?.persona?.nombres} {userProfile?.persona?.apellido_paterno}</p>
                     </div>
+                    {formData.tipo_entrada === 'Evento' && formData.fecha_evento && (
+                        <p className="text-sm text-gray-500 mb-4">
+                            Fecha del evento: {formatEventDate(formData.fecha_evento)}
+                        </p>
+                    )}
                     <div className="prose max-w-none flex-grow" dangerouslySetInnerHTML={{ __html: formData.contenido }} />
                     <p className="text-sm text-gray-500 text-center mt-4">{formData.tipo_entrada}</p>
                 </Card>

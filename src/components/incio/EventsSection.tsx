@@ -5,6 +5,7 @@ interface Evento {
   id: number;
   titulo: string;
   fecha: string;
+  fecha_evento: string;
   portada_url: string;
 }
 
@@ -38,7 +39,7 @@ export default async function EventsSection() {
                 </div>
                 <div>
                   <h4 className="font-semibold">{evento.titulo}</h4>
-                  <p className="text-sm text-gray-600">{new Date(evento.fecha).toLocaleDateString()}</p>
+                  <p className="text-sm text-gray-600">{new Date(evento.fecha_evento).toLocaleDateString()}</p>
                 </div>
               </li>
             ))}
