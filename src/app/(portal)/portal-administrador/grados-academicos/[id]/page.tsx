@@ -9,12 +9,17 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowLeft } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { toast } from "@/hooks/use-toast"
+import { AlertCircle, ArrowLeft } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+
+type HoraEnum = 'Primera_Hora' | 'Segunda_Hora' | 'Tercera_Hora' | 'Cuarta_Hora' | 'Quinta_Hora' | 'Sexta_Hora' | 'Septima_Hora';
 
 interface Course {
     id: number;
-    area: string;
+    area: {
+        nombrearea: string;
+    }
     DocenteCurso: {
         id: number;
         docente: {
@@ -58,7 +63,9 @@ interface GradeInfo {
         gradoAcademico_id: number;
         curso: {
             id: number;
-            area: string;
+            area: {
+                nombrearea: string;
+            }
         };
         turno: string;
         dia: string;
@@ -67,19 +74,19 @@ interface GradeInfo {
     }[];
 }
 
-export default function Component({ gradeId = 1 }: { gradeId?: number }) {
-    const [dialogOpen, setDialogOpen] = useState(false)
-    const [cursoSeleccionado, setCursoSeleccionado] = useState('')
-    const [docenteSeleccionado, setDocenteSeleccionado] = useState('')
-    const [horarioSeleccionado, setHorarioSeleccionado] = useState<{ [key: string]: boolean }>({})
+export default function CourseScheduleManager({ gradeId = 1 }: { gradeId?: number }) {
     const [courses, setCourses] = useState<Course[]>([])
     const [gradeInfo, setGradeInfo] = useState<GradeInfo | null>(null)
-    const router = useRouter()
+    const [selectedCourse, setSelectedCourse] = useState('')
+    const [selectedTeacher, setSelectedTeacher] = useState('')
+    const [dialogOpen, setDialogOpen] = useState(false)
+    const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+    const [selectedSchedule, setSelectedSchedule] = useState<{ [key: string]: HoraEnum[] }>({})
+    const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
-    const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']
-    const horas = [
+    const diasSemana = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes']
+    const horas: HoraEnum[] = [
         'Primera_Hora', 'Segunda_Hora', 'Tercera_Hora', 'Cuarta_Hora',
-        'Recreo',
         'Quinta_Hora', 'Sexta_Hora', 'Septima_Hora'
     ]
 
@@ -92,6 +99,11 @@ export default function Component({ gradeId = 1 }: { gradeId?: number }) {
                 setGradeInfo(data)
             } catch (error) {
                 console.error('Error fetching grade info:', error)
+                toast({
+                    title: "Error",
+                    description: "No se pudo cargar la información del grado.",
+                    variant: "destructive",
+                })
             }
         }
 
@@ -103,6 +115,11 @@ export default function Component({ gradeId = 1 }: { gradeId?: number }) {
                 setCourses(data)
             } catch (error) {
                 console.error('Error fetching courses:', error)
+                toast({
+                    title: "Error",
+                    description: "No se pudieron cargar los cursos.",
+                    variant: "destructive",
+                })
             }
         }
 
@@ -110,66 +127,112 @@ export default function Component({ gradeId = 1 }: { gradeId?: number }) {
         fetchCourses()
     }, [gradeId])
 
-    const handleAgregarCurso = () => {
-        if (cursoSeleccionado && docenteSeleccionado && Object.keys(horarioSeleccionado).length > 0) {
-            console.log('Curso agregado:', cursoSeleccionado, 'Docente:', docenteSeleccionado, 'Horario:', horarioSeleccionado)
-            // Aquí iría la lógica para agregar el curso al horario
-            setDialogOpen(false)
+    const toggleSchedule = (dia: string, hora: HoraEnum) => {
+        setSelectedSchedule(prev => {
+            const newSchedule = { ...prev }
+            if (!newSchedule[dia]) {
+                newSchedule[dia] = []
+            }
+            const index = newSchedule[dia].indexOf(hora)
+            if (index > -1) {
+                newSchedule[dia].splice(index, 1)
+            } else {
+                newSchedule[dia].push(hora)
+            }
+            if (newSchedule[dia].length === 0) {
+                delete newSchedule[dia]
+            }
+            return newSchedule
+        })
+
+        // Update selected day
+        if (selectedDay !== dia) {
+            setSelectedDay(dia)
+        } else if (Object.keys(selectedSchedule).length === 1 && selectedSchedule[dia]?.length === 1) {
+            setSelectedDay(null)
         }
     }
 
-    const resetForm = () => {
-        setCursoSeleccionado('')
-        setDocenteSeleccionado('')
-        setHorarioSeleccionado({})
-    }
+    const handleAddCourse = async () => {
+        if (selectedCourse && selectedTeacher && Object.keys(selectedSchedule).length > 0) {
+            const [dia, horas] = Object.entries(selectedSchedule)[0];
+            const scheduleData = {
+                gradoAcademico_id: gradeId,
+                curso_id: parseInt(selectedCourse),
+                turno: gradeInfo?.turno || "Dia",
+                dia,
+                horas
+            };
 
-    const toggleHorario = (dia: string, hora: number) => {
-        setHorarioSeleccionado(prev => {
-            const newHorario = { ...prev }
-            const key = `${dia}-${hora}`
-            if (newHorario[key]) {
-                delete newHorario[key]
-            } else {
-                newHorario[key] = true
+            console.log('Data being sent to the backend:', scheduleData);
+
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/horarios`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(scheduleData),
+                });
+
+                if (!response.ok) throw new Error('Failed to add course to schedule');
+
+                const result = await response.json();
+                console.log('Server response:', result);
+
+                toast({
+                    title: "Curso agregado",
+                    description: "El curso ha sido agregado al horario exitosamente.",
+                });
+
+                setDialogOpen(false);
+                setScheduleDialogOpen(false);
+                setSelectedCourse('');
+                setSelectedTeacher('');
+                setSelectedSchedule({});
+                setSelectedDay(null);
+                // Optionally, refresh the grade info to show the updated schedule
+                // fetchGradeInfo();
+            } catch (error) {
+                console.error('Error adding course to schedule:', error);
+                toast({
+                    title: "Error",
+                    description: "Hubo un problema al agregar el curso al horario.",
+                    variant: "destructive",
+                });
             }
-            return newHorario
-        })
-    }
+        }
+    };
 
-    const renderHorarioTable = () => {
-        const titulo = `Horario de Clases - Turno ${gradeInfo?.turno}`
-
+    const renderCurrentSchedule = () => {
         const horarioMap = new Map()
         gradeInfo?.Horario.forEach(h => {
-            const startKey = `${h.dia}-${h.horaInicio}`
-            const endKey = `${h.dia}-${h.horaFin}`
-            horarioMap.set(startKey, h.curso.area)
-            horarioMap.set(endKey, h.curso.area)
+            const key = `${h.dia}-${h.horaInicio}`
+            horarioMap.set(key, h.curso.area.nombrearea)
         })
 
         return (
-            <Card className="mt-6 w-full">
+            <Card className="mt-6">
                 <CardHeader>
-                    <CardTitle>{titulo}</CardTitle>
+                    <CardTitle>Horario Actual</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <ScrollArea className="h-[400px]">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[100px]">Hora</TableHead>
-                                    {diasSemana.map((dia) => (
-                                        <TableHead key={dia}>{dia}</TableHead>
+                                    <TableHead className="w-[100px]">Día</TableHead>
+                                    {horas.map((hora) => (
+                                        <TableHead key={hora}>{hora.replace('_', ' ')}</TableHead>
                                     ))}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {horas.map((hora, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell>{hora.replace('_', ' ')}</TableCell>
-                                        {diasSemana.map((dia) => (
-                                            <TableCell key={`${dia}-${index}`}>
+                                {diasSemana.map((dia) => (
+                                    <TableRow key={dia}>
+                                        <TableCell>{dia}</TableCell>
+                                        {horas.map((hora) => (
+                                            <TableCell key={`${dia}-${hora}`}>
                                                 {horarioMap.get(`${dia}-${hora}`) || ''}
                                             </TableCell>
                                         ))}
@@ -183,12 +246,14 @@ export default function Component({ gradeId = 1 }: { gradeId?: number }) {
         )
     }
 
-    const handleReturnToPreviousPage = () => {
-        router.back()
-    }
-
     return (
-        <div className="grid grid-cols-1 gap-6">
+        <div className="container mx-auto p-4">
+            <Button variant="outline" className="mb-4" onClick={() => window.history.back()}>
+                <ArrowLeft className="mr-2 h-4 w-4" /> Regresar
+            </Button>
+
+            <h1 className="text-3xl font-bold mb-6">Grado Académico: {gradeInfo ? `${gradeInfo.grado} ${gradeInfo.seccion}` : 'Cargando...'}</h1>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card>
                     <CardHeader>
@@ -214,12 +279,7 @@ export default function Component({ gradeId = 1 }: { gradeId?: number }) {
                         <CardTitle>Agregar Curso</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Dialog open={dialogOpen} onOpenChange={(open) => {
-                            if (open) {
-                                resetForm()
-                            }
-                            setDialogOpen(open)
-                        }}>
+                        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                             <DialogTrigger asChild>
                                 <Button onClick={() => setDialogOpen(true)}>Agregar Curso al Horario</Button>
                             </DialogTrigger>
@@ -229,84 +289,117 @@ export default function Component({ gradeId = 1 }: { gradeId?: number }) {
                                 </DialogHeader>
                                 <div className="grid gap-4 py-4">
                                     <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="curso" className="text-right">
+                                        <Label htmlFor="course" className="text-right">
                                             Curso
                                         </Label>
-                                        <Select value={cursoSeleccionado} onValueChange={(value) => setCursoSeleccionado(value)}>
+                                        <Select value={selectedCourse} onValueChange={(value) => {
+                                            setSelectedCourse(value)
+                                            setSelectedTeacher('')
+                                        }}>
                                             <SelectTrigger className="col-span-3">
                                                 <SelectValue placeholder="Seleccionar curso" />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {courses.map((course) => (
-                                                    <SelectItem key={course.id} value={course.id.toString()}>{course.area}</SelectItem>
+                                                    <SelectItem key={course.id} value={course.id.toString()}>{course.area.nombrearea}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="docente" className="text-right">
-                                            Docente
-                                        </Label>
-                                        <Select value={docenteSeleccionado} onValueChange={(value) => setDocenteSeleccionado(value)}>
-                                            <SelectTrigger className="col-span-3">
-                                                <SelectValue placeholder="Seleccionar docente" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {courses.find(c => c.id.toString() === cursoSeleccionado)?.DocenteCurso.map((dc) => (
-                                                    <SelectItem key={dc.id} value={dc.docente.id.toString()}>
-                                                        {`${dc.docente.Persona.nombres} ${dc.docente.Persona.apellido_paterno} ${dc.docente.Persona.apellido_materno}`}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="col-span-4">
-                                        <Label className="mb-2 block">Seleccionar horario</Label>
-                                        <ScrollArea className="h-[300px]">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>Hora</TableHead>
-                                                        {diasSemana.map((dia) => (
-                                                            <TableHead key={dia} className="text-center">{dia}</TableHead>
+                                    {selectedCourse && (
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label htmlFor="teacher" className="text-right">
+                                                Docente
+                                            </Label>
+                                            {(courses.find(c => c.id.toString() === selectedCourse)?.DocenteCurso ?? []).length > 0 ? (
+                                                <Select value={selectedTeacher} onValueChange={(value) => setSelectedTeacher(value)}>
+                                                    <SelectTrigger className="col-span-3">
+                                                        <SelectValue placeholder="Seleccionar docente" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {courses.find(c => c.id.toString() === selectedCourse)?.DocenteCurso.map((dc) => (
+                                                            <SelectItem key={dc.id} value={dc.docente.id.toString()}>
+                                                                {`${dc.docente.Persona.nombres} ${dc.docente.Persona.apellido_paterno} ${dc.docente.Persona.apellido_materno}`}
+                                                            </SelectItem>
                                                         ))}
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {horas.map((hora, index) => {
-                                                        if (hora === 'Recreo') {
-                                                            return (
-                                                                <TableRow key={hora}>
-                                                                    <TableCell colSpan={6} className="text-center bg-gray-100">
-                                                                        Recreo
-                                                                    </TableCell>
-                                                                </TableRow>
-                                                            )
-                                                        }
-                                                        return (
-                                                            <TableRow key={hora}>
-                                                                <TableCell>{hora}</TableCell>
-                                                                {diasSemana.map((dia) => (
-                                                                    <TableCell key={`${dia}-${index}`} className="text-center">
-                                                                        <Checkbox
-                                                                            checked={!!horarioSeleccionado[`${dia}-${index}`]}
-                                                                            onCheckedChange={() => toggleHorario(dia, index)}
-                                                                        />
-                                                                    </TableCell>
-                                                                ))}
-                                                            </TableRow>
-                                                        )
-                                                    })}
-                                                </TableBody>
-                                            </Table>
-                                        </ScrollArea>
-                                    </div>
+                                                    </SelectContent>
+                                                </Select>
+                                            ) : (
+                                                <Alert className="col-span-3">
+                                                    <AlertCircle className="h-4 w-4" />
+                                                    <AlertTitle>Atención</AlertTitle>
+                                                    <AlertDescription>
+                                                        No hay docentes registrados para este curso.
+                                                    </AlertDescription>
+                                                </Alert>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="flex justify-end space-x-2">
                                     <Button variant="outline" onClick={() => setDialogOpen(false)}>
                                         Cancelar
                                     </Button>
-                                    <Button onClick={handleAgregarCurso}>Agregar Curso</Button>
+                                    <Button
+                                        onClick={() => {
+                                            setScheduleDialogOpen(true)
+                                            setDialogOpen(false)
+                                        }}
+                                        disabled={!selectedCourse || !selectedTeacher}
+                                    >
+                                        Siguiente
+                                    </Button>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+
+                        <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+                            <DialogContent className="sm:max-w-[700px]">
+                                <DialogHeader>
+                                    <DialogTitle>Seleccionar Horario</DialogTitle>
+                                </DialogHeader>
+                                <div className="py-4">
+                                    <ScrollArea className="h-[400px]">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Día</TableHead>
+                                                    {horas.map((hora) => (
+                                                        <TableHead key={hora} className="text-center">{hora.replace('_', '   ')}</TableHead>
+                                                    ))}
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {diasSemana.map((dia) => (
+                                                    <TableRow key={dia}>
+                                                        <TableCell>{dia}</TableCell>
+                                                        {horas.map((hora) => (
+                                                            <TableCell key={`${dia}-${hora}`} className="text-center">
+                                                                <Checkbox
+                                                                    checked={selectedSchedule[dia]?.includes(hora)}
+                                                                    onCheckedChange={() => toggleSchedule(dia, hora)}
+                                                                    disabled={selectedDay !== null && selectedDay !== dia}
+                                                                />
+                                                            </TableCell>
+                                                        ))}
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </ScrollArea>
+                                </div>
+                                <div className="flex justify-end space-x-2">
+                                    <Button variant="outline" onClick={() => {
+                                        setScheduleDialogOpen(false)
+                                        setDialogOpen(true)
+                                        setSelectedSchedule({})
+                                        setSelectedDay(null)
+                                    }}>
+                                        Regresar
+                                    </Button>
+                                    <Button onClick={handleAddCourse} disabled={Object.keys(selectedSchedule).length === 0}>
+                                        Agregar Curso
+                                    </Button>
                                 </div>
                             </DialogContent>
                         </Dialog>
@@ -314,14 +407,12 @@ export default function Component({ gradeId = 1 }: { gradeId?: number }) {
                 </Card>
             </div>
 
-            {renderHorarioTable()}
-
-            <Card>
+            <Card className="mt-6">
                 <CardHeader>
                     <CardTitle>Lista de Alumnos</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <ScrollArea className="h-[200px]">
+                    <ScrollArea className="h-[300px]">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -330,18 +421,21 @@ export default function Component({ gradeId = 1 }: { gradeId?: number }) {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {gradeInfo?.Estudiante.map((estudiante, index) => (
-                                    <TableRow key={estudiante.id}>
-                                        <TableCell>{index + 1}</TableCell>
-                                        <TableCell>{`${estudiante.Persona.nombres} ${estudiante.Persona.apellido_paterno} ${estudiante.Persona.apellido_materno}`}</TableCell>
-                                    </TableRow>
-                                ))}
+                                {gradeInfo?.Estudiante
+                                    .sort((a, b) => a.Persona.apellido_paterno.localeCompare(b.Persona.apellido_paterno))
+                                    .map((estudiante, index) => (
+                                        <TableRow key={estudiante.id}>
+                                            <TableCell>{index + 1}</TableCell>
+                                            <TableCell>{`${estudiante.Persona.apellido_paterno} ${estudiante.Persona.apellido_materno}, ${estudiante.Persona.nombres}`}</TableCell>
+                                        </TableRow>
+                                    ))}
                             </TableBody>
                         </Table>
-
                     </ScrollArea>
                 </CardContent>
             </Card>
+
+            {renderCurrentSchedule()}
         </div>
     )
 }

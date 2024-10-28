@@ -76,7 +76,6 @@ export default function RoleBasedModules() {
             throw new Error('Failed to fetch user profile')
           }
           const profileData = await profileResponse.json()
-          console.log("User profile data:", profileData)
           setUserProfile(profileData)
 
           console.log("Fetching user modules...")
@@ -161,9 +160,6 @@ export default function RoleBasedModules() {
     return <div className="text-center p-4">No se pudo determinar el perfil del usuario</div>
   }
 
-  console.log("Rendering with user profile:", userProfile)
-  console.log("Available modules:", userModules)
-
   return (
     <div className="min-h-screen bg-gray-100 flex">
       <div className={`flex-grow py-12 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${sidebarOpen ? 'lg:mr-64' : ''}`}>
@@ -211,7 +207,7 @@ export default function RoleBasedModules() {
             </div>
             <div className="mb-4">
               <Image
-                src={userProfile.avatar || "/placeholder.svg?height=100&width=100"}
+                src={`${process.env.NEXT_PUBLIC_BACKEND_IMAGES}/${userProfile.avatar}` || "/placeholder.svg?height=100&width=100"}
                 alt="Foto de perfil"
                 width={100}
                 height={100}

@@ -3,13 +3,13 @@
 import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Loader2, User, Upload } from "lucide-react"
+import { ImageEditor } from "@/components/profile/image-editor"
 
 interface ProfileData {
   id: number
@@ -40,6 +40,8 @@ export default function ProfilePage() {
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [formData, setFormData] = useState<Partial<ProfileData>>({})
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [isImageEditorOpen, setIsImageEditorOpen] = useState(false)
+  const [tempImageUrl, setTempImageUrl] = useState<string | null>(null)
 
   const fetchProfileData = useCallback(async () => {
     if (session?.user?.accessToken) {
@@ -74,7 +76,7 @@ export default function ProfilePage() {
     const { name, value } = e.target
     setFormData(prev => {
       if (name.startsWith('persona.')) {
-        const personaField = name.split('.')[1]
+        const personaField = name.split('.')[1] as keyof ProfileData['persona']
         return {
           ...prev,
           persona: {
@@ -87,9 +89,56 @@ export default function ProfilePage() {
     })
   }
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setAvatarFile(e.target.files[0])
+  const handleAvatarClick = () => {
+    if (isEditing) {
+      setTempImageUrl(avatarFile ? URL.createObjectURL(avatarFile) : getAvatarUrl(profileData!.avatar))
+      setIsImageEditorOpen(true)
+    }
+  }
+
+  const handleSaveImage = async (croppedImage: Blob) => {
+    setIsImageEditorOpen(false)
+    setTempImageUrl(null)
+
+    try {
+      const formData = new FormData()
+      const file = new File([croppedImage], 'avatar.jpg', { type: 'image/jpeg' })
+      formData.append('file', file)
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/profile`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${session?.user?.accessToken}`,
+        },
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update avatar')
+      }
+
+      const updatedUser = await response.json()
+      setProfileData(prevData => ({
+        ...prevData!,
+        avatar: updatedUser.avatar
+      }))
+      setAvatarFile(file)
+
+      // Actualizar la sesión con la nueva imagen
+      await update({
+        ...session,
+        user: {
+          ...session?.user,
+          image: updatedUser.avatar,
+        },
+      })
+
+      // Forzar una actualización de la interfaz
+      router.refresh()
+
+    } catch (err) {
+      console.error('Error updating avatar:', err)
+      setError('Error al actualizar la imagen de perfil')
     }
   }
 
@@ -98,33 +147,26 @@ export default function ProfilePage() {
     setIsUpdating(true)
     setError(null)
 
-    const changedFields = Object.entries(formData).reduce((acc, [key, value]) => {
+    const changedFields: Record<string, unknown> = {}
+
+    Object.entries(formData).forEach(([key, value]) => {
       if (key === 'persona') {
         Object.entries(value as object).forEach(([personaKey, personaValue]) => {
           if (personaValue !== profileData?.persona[personaKey as keyof typeof profileData.persona]) {
-            acc[`persona.${personaKey}`] = personaValue
+            changedFields[personaKey] = personaValue
           }
         })
       } else if (value !== profileData?.[key as keyof ProfileData]) {
-        acc[key] = value
+        changedFields[key] = value
       }
-      return acc
-    }, {} as Record<string, unknown>)
-
-    if (avatarFile) {
-      changedFields.avatar = avatarFile
-    }
+    })
 
     console.log('Data being sent to the backend:', changedFields)
 
     try {
       const formDataToSend = new FormData()
       Object.entries(changedFields).forEach(([key, value]) => {
-        if (key === 'avatar' && value instanceof File) {
-          formDataToSend.append('avatar', value)
-        } else {
-          formDataToSend.append(key, value as string)
-        }
+        formDataToSend.append(key, value as string)
       })
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/profile`, {
@@ -162,6 +204,13 @@ export default function ProfilePage() {
     }
   }
 
+  const getAvatarUrl = (avatarPath: string) => {
+    if (avatarPath.startsWith('http')) {
+      return avatarPath
+    }
+    return `${process.env.NEXT_PUBLIC_BACKEND_IMAGES}/${avatarPath}`
+  }
+
   if (status === "loading" || isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -178,38 +227,44 @@ export default function ProfilePage() {
   return (
     <div className="container mx-auto p-6">
       <Card className="w-full max-w-3xl mx-auto">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">Perfil de Usuario</CardTitle>
-          <CardDescription>Tu información personal</CardDescription>
+        <CardHeader className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-2xl font-bold">Perfil de Usuario</CardTitle>
+            <CardDescription>Tu información personal</CardDescription>
+          </div>
+          {!isEditing && (
+            <Button onClick={() => setIsEditing(true)}>
+              Editar Perfil
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {profileData && (
             <>
-              <div className="flex items-center space-x-4 mb-6">
-                <div className="relative">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage src={avatarFile ? URL.createObjectURL(avatarFile) : profileData.avatar} alt={`${profileData.persona.nombres} ${profileData.persona.apellido_paterno}`} />
+              <div className="flex flex-col items-center space-y-4 mb-6">
+                <div 
+                  className={`relative cursor-pointer ${isEditing ? 'hover:opacity-80 transition-opacity' : ''}`}
+                  onClick={handleAvatarClick}
+                >
+                  <Avatar  className="h-40 w-40">
+                    <AvatarImage 
+                      src={avatarFile ? URL.createObjectURL(avatarFile) : getAvatarUrl(profileData.avatar)} 
+                      alt={`${profileData.persona.nombres} ${profileData.persona.apellido_paterno}`} 
+                    />
                     <AvatarFallback>
-                      <User className="h-10 w-10" />
+                      <User className="h-20 w-20" />
                     </AvatarFallback>
                   </Avatar>
                   {isEditing && (
-                    <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1 cursor-pointer">
-                      <Upload className="h-4 w-4" />
-                      <input
-                        id="avatar-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleAvatarChange}
-                      />
-                    </label>
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 hover:opacity-100 transition-opacity">
+                      <Upload className="h-8 w-8 text-white" />
+                    </div>
                   )}
                 </div>
-                <div>
-                  <h2 className="text-xl font-semibold">{`${profileData.persona.nombres} ${profileData.persona.apellido_paterno} ${profileData.persona.apellido_materno}`}</h2>
-                  <p className="text-sm text-gray-500">{profileData.email}</p>
-                  <p className="text-sm text-gray-500">{profileData.rol}</p>
+                <div className="text-center">
+                  <h2 className="text-2xl font-semibold">{`${profileData.persona.nombres} ${profileData.persona.apellido_paterno} ${profileData.persona.apellido_materno}`}</h2>
+                  <p className="text-md text-gray-500">{profileData.email}</p>
+                  <p className="text-md text-gray-500">{profileData.rol}</p>
                 </div>
               </div>
               {isEditing ? (
@@ -271,7 +326,7 @@ export default function ProfilePage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="direccion">Dirección</Label>
+                      <Label htmlFor="persona.direccion">Dirección</Label>
                       <Input
                         id="persona.direccion"
                         name="persona.direccion"
@@ -356,17 +411,18 @@ export default function ProfilePage() {
                       <p className="mt-1">{profileData.persona.sexo}</p>
                     </div>
                   </div>
-                  <CardFooter className="flex justify-end mt-6 p-0">
-                    <Button onClick={() => setIsEditing(true)}>
-                      Editar Perfil
-                    </Button>
-                  </CardFooter>
                 </>
               )}
             </>
           )}
         </CardContent>
       </Card>
+      <ImageEditor
+        isOpen={isImageEditorOpen}
+        onClose={() => setIsImageEditorOpen(false)}
+        onSave={handleSaveImage}
+        initialImage={tempImageUrl}
+      />
     </div>
   )
 }

@@ -24,7 +24,9 @@ import Link from "next/link"
 
 interface Curso {
   id: number
-  area: string
+  area: {
+    nombrearea: string;
+  }
   created_at: string
   updated_at: string
 }
@@ -110,7 +112,7 @@ export default function AdministrarCursos() {
         {cursos.map((curso) => (
           <Card key={curso.id}>
             <CardHeader>
-              <CardTitle>{curso.area}</CardTitle>
+              <CardTitle>{curso.area.nombrearea}</CardTitle>
               <CardDescription>Área de estudio</CardDescription>
             </CardHeader>
             <CardContent>
@@ -120,7 +122,7 @@ export default function AdministrarCursos() {
               <Button variant="destructive" onClick={() => handleDelete(curso.id)}>
                 Eliminar
               </Button>
-              <Link href={`/portal/portal-administrador/cursos/${curso.id}/docentes`} passHref>
+              <Link href={`/portal-administrador/cursos/${curso.id}/docentes`} passHref>
                 <Button variant="secondary">Administrar Docentes</Button>
               </Link>
             </CardFooter>

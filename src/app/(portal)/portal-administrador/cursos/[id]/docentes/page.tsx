@@ -44,7 +44,9 @@ interface DocenteCurso {
 
 interface Curso {
     id: number
-    area: string
+    area: {
+        nombrearea: string
+    }
     created_at: string
     updated_at: string
     DocenteCurso: DocenteCurso[]
@@ -137,7 +139,7 @@ export default function AdministrarDocentesCurso() {
             </div>
             {curso && (
                 <div className="mb-4">
-                    <h2 className="text-xl font-semibold">Área: {curso.area}</h2>
+                    <h2 className="text-xl font-semibold">Área: {curso.area.nombrearea}</h2>
                 </div>
             )}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
