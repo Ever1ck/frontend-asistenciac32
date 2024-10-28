@@ -82,7 +82,6 @@ export default function CourseScheduleManager({ gradeId = 1 }: { gradeId?: numbe
     const [dialogOpen, setDialogOpen] = useState(false)
     const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
     const [selectedSchedule, setSelectedSchedule] = useState<{ [key: string]: HoraEnum[] }>({})
-    const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
     const diasSemana = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes']
     const horas: HoraEnum[] = [
@@ -144,25 +143,18 @@ export default function CourseScheduleManager({ gradeId = 1 }: { gradeId?: numbe
             }
             return newSchedule
         })
-
-        // Update selected day
-        if (selectedDay !== dia) {
-            setSelectedDay(dia)
-        } else if (Object.keys(selectedSchedule).length === 1 && selectedSchedule[dia]?.length === 1) {
-            setSelectedDay(null)
-        }
     }
 
     const handleAddCourse = async () => {
         if (selectedCourse && selectedTeacher && Object.keys(selectedSchedule).length > 0) {
-            const [dia, horas] = Object.entries(selectedSchedule)[0];
-            const scheduleData = {
+            const scheduleData = Object.entries(selectedSchedule).map(([dia, horas]) => ({
                 gradoAcademico_id: gradeId,
                 curso_id: parseInt(selectedCourse),
+                docente_id: parseInt(selectedTeacher),
                 turno: gradeInfo?.turno || "Dia",
                 dia,
                 horas
-            };
+            }));
 
             console.log('Data being sent to the backend:', scheduleData);
 
@@ -190,9 +182,7 @@ export default function CourseScheduleManager({ gradeId = 1 }: { gradeId?: numbe
                 setSelectedCourse('');
                 setSelectedTeacher('');
                 setSelectedSchedule({});
-                setSelectedDay(null);
-                // Optionally, refresh the grade info to show the updated schedule
-                // fetchGradeInfo();
+                fetchGradeInfo();
             } catch (error) {
                 console.error('Error adding course to schedule:', error);
                 toast({
@@ -244,6 +234,22 @@ export default function CourseScheduleManager({ gradeId = 1 }: { gradeId?: numbe
                 </CardContent>
             </Card>
         )
+    }
+
+    const fetchGradeInfo = async () => {
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/gradosacademicos/${gradeId}`)
+            if (!response.ok) throw new Error('Failed to fetch grade info')
+            const data = await response.json()
+            setGradeInfo(data)
+        } catch (error) {
+            console.error('Error fetching grade info:', error)
+            toast({
+                title: "Error",
+                description: "No se pudo cargar la información del grado.",
+                variant: "destructive",
+            })
+        }
     }
 
     return (
@@ -353,7 +359,13 @@ export default function CourseScheduleManager({ gradeId = 1 }: { gradeId?: numbe
                             </DialogContent>
                         </Dialog>
 
-                        <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+                        <Dialog open={scheduleDialogOpen}
+                            onOpenChange={(open) => {
+                                if (!open) {
+                                    setSelectedSchedule({})
+                                }
+                                setScheduleDialogOpen(open)
+                            }}>
                             <DialogContent className="sm:max-w-[700px]">
                                 <DialogHeader>
                                     <DialogTitle>Seleccionar Horario</DialogTitle>
@@ -365,7 +377,7 @@ export default function CourseScheduleManager({ gradeId = 1 }: { gradeId?: numbe
                                                 <TableRow>
                                                     <TableHead>Día</TableHead>
                                                     {horas.map((hora) => (
-                                                        <TableHead key={hora} className="text-center">{hora.replace('_', '   ')}</TableHead>
+                                                        <TableHead key={hora} className="text-center">{hora.replace('_', ' ')}</TableHead>
                                                     ))}
                                                 </TableRow>
                                             </TableHeader>
@@ -378,7 +390,6 @@ export default function CourseScheduleManager({ gradeId = 1 }: { gradeId?: numbe
                                                                 <Checkbox
                                                                     checked={selectedSchedule[dia]?.includes(hora)}
                                                                     onCheckedChange={() => toggleSchedule(dia, hora)}
-                                                                    disabled={selectedDay !== null && selectedDay !== dia}
                                                                 />
                                                             </TableCell>
                                                         ))}
@@ -393,7 +404,6 @@ export default function CourseScheduleManager({ gradeId = 1 }: { gradeId?: numbe
                                         setScheduleDialogOpen(false)
                                         setDialogOpen(true)
                                         setSelectedSchedule({})
-                                        setSelectedDay(null)
                                     }}>
                                         Regresar
                                     </Button>
