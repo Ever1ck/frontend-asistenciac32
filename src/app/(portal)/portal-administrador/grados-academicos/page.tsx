@@ -55,6 +55,21 @@ interface GradoAcademico {
   aula: Aula
 }
 
+async function getGradoAcademico(id: string, accessToken: string) {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/gradosacademicos`, {
+      headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+      },
+      cache: 'no-store'
+  })
+  if (!res.ok) {
+      throw new Error('Failed to fetch grado academico')
+  }
+  return res.json()
+}
+
+
 const gradoAcademicoSchema = z.object({
   grado: z.enum(["Primero", "Segundo", "Tercero", "Cuarto", "Quinto"]),
   seccion: z.string().min(1, "La sección es requerida"),

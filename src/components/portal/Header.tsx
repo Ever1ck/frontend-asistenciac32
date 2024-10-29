@@ -28,6 +28,7 @@ interface UserProfile {
   email: string;
   rol: string;
   persona: Persona;
+  avatar: string;
 }
 
 type HeaderProps = {
@@ -73,7 +74,7 @@ export default function Header({ toggleSidebar, theme, setTheme, userProfile }: 
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center gap-2">
             <Image
-              src="/placeholder.svg?height=32&width=32"
+              src={userProfile ? `${process.env.NEXT_PUBLIC_BACKEND_IMAGES}/${userProfile.avatar}` : "https://cdn.icon-icons.com/icons2/1378/PNG/512/avatardefault_92824.png"}
               alt="Avatar"
               width={32}
               height={32}

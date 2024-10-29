@@ -42,7 +42,7 @@ export default function AdministrarCursos() {
 
   const fetchCursos = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cursos`)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_IMAGES}/cursos`)
       if (!response.ok) throw new Error('Error al obtener los cursos')
       const data = await response.json()
       setCursos(data)

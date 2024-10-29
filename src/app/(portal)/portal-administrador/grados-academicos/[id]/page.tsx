@@ -1,451 +1,423 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useEffect, useState } from 'react'
+import { useSession } from "next-auth/react"
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { toast } from "@/hooks/use-toast"
-import { AlertCircle, ArrowLeft } from 'lucide-react'
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft, Plus, X } from "lucide-react"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
 
-type HoraEnum = 'Primera_Hora' | 'Segunda_Hora' | 'Tercera_Hora' | 'Cuarta_Hora' | 'Quinta_Hora' | 'Sexta_Hora' | 'Septima_Hora';
 
-interface Course {
-    id: number;
-    area: {
-        nombrearea: string;
-    }
-    DocenteCurso: {
-        id: number;
-        docente: {
-            id: number;
-            Persona: {
-                nombres: string;
-                apellido_paterno: string;
-                apellido_materno: string;
-            }
-        }
-    }[];
+interface Curso {
+    id: string;
+    nombre: string;
 }
 
-interface GradeInfo {
-    id: number;
-    grado: string;
-    seccion: string;
-    turno: string;
-    tutor: {
-        Persona: {
-            nombres: string;
-            apellido_paterno: string;
-            apellido_materno: string;
-        }
-    };
-    aula: {
-        edificio: number;
-        piso: number;
-        numeroAula: number;
-    };
-    Estudiante: {
-        id: number;
-        Persona: {
-            nombres: string;
-            apellido_paterno: string;
-            apellido_materno: string;
-        }
-    }[];
-    Horario: {
-        id: number;
-        gradoAcademico_id: number;
+interface Docente {
+    id: string;
+    nombre: string;
+}
+
+async function getCursos(accessToken: string) {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cursos`, {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+        },
+        cache: 'no-store'
+    })
+    if (!res.ok) {
+        throw new Error('Failed to fetch cursos')
+    }
+    return res.json()
+}
+
+async function getDocentes(accessToken: string) {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/docentes`, {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+        },
+        cache: 'no-store'
+    })
+    if (!res.ok) {
+        throw new Error('Failed to fetch docentes')
+    }
+    return res.json()
+}
+
+
+async function getGradoAcademico(id: string, accessToken: string) {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/gradosacademicos/${id}`, {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+        },
+        cache: 'no-store'
+    })
+    if (!res.ok) {
+        throw new Error('Failed to fetch grado academico')
+    }
+    return res.json()
+}
+
+export default function GradoAcademicoPage({ params }: { params: { id: string } }) {
+    const router = useRouter()
+    const { data: session, status } = useSession()
+    const [gradoAcademico, setGradoAcademico] = useState<GradoAcademico | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [isAdmin, setIsAdmin] = useState(false)
+    const [cursos, setCursos] = useState<Curso[]>([])
+    const [docentes, setDocentes] = useState<Docente[]>([])
+    const [selectedCurso, setSelectedCurso] = useState<string>('')
+    const [selectedDocente, setSelectedDocente] = useState<string>('')
+    const [selectedAuxiliar, setSelectedAuxiliar] = useState<string>('')
+    const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+    interface Persona {
+        nombres: string;
+        apellido_paterno: string;
+        apellido_materno: string;
+    }
+
+    interface Estudiante {
+        id: string;
+        Persona: Persona;
+    }
+
+    interface Tutor {
+        Persona: Persona;
+    }
+
+    interface Aula {
+        edificio: string;
+        piso: string;
+        numeroAula: string;
+    }
+
+    interface Horario {
+        id: string;
+        dia: string;
         curso: {
-            id: number;
             area: {
                 nombrearea: string;
-            }
+            };
         };
+        horas: string[];
+    }
+
+    interface GradoAcademico {
+        grado: string;
+        seccion: string;
         turno: string;
-        dia: string;
-        horaInicio: string;
-        horaFin: string;
-    }[];
-}
-
-export default function CourseScheduleManager({ gradeId = 1 }: { gradeId?: number }) {
-    const [courses, setCourses] = useState<Course[]>([])
-    const [gradeInfo, setGradeInfo] = useState<GradeInfo | null>(null)
-    const [selectedCourse, setSelectedCourse] = useState('')
-    const [selectedTeacher, setSelectedTeacher] = useState('')
-    const [dialogOpen, setDialogOpen] = useState(false)
-    const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
-    const [selectedSchedule, setSelectedSchedule] = useState<{ [key: string]: HoraEnum[] }>({})
-
-    const diasSemana = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes']
-    const horas: HoraEnum[] = [
-        'Primera_Hora', 'Segunda_Hora', 'Tercera_Hora', 'Cuarta_Hora',
-        'Quinta_Hora', 'Sexta_Hora', 'Septima_Hora'
-    ]
+        tutor: Tutor;
+        aula: Aula;
+        Estudiante: Estudiante[];
+        Horario: Horario[];
+    }
 
     useEffect(() => {
-        const fetchGradeInfo = async () => {
-            try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/gradosacademicos/${gradeId}`)
-                if (!response.ok) throw new Error('Failed to fetch grade info')
-                const data = await response.json()
-                setGradeInfo(data)
-            } catch (error) {
-                console.error('Error fetching grade info:', error)
-                toast({
-                    title: "Error",
-                    description: "No se pudo cargar la información del grado.",
-                    variant: "destructive",
-                })
+        if (status === 'unauthenticated') {
+            router.push('/api/auth/signin')
+        } else if (status === 'authenticated' && session?.user?.accessToken) {
+            const fetchData = async () => {
+                try {
+                    const gradoData = await getGradoAcademico(params.id, session.user.accessToken)
+                    setGradoAcademico(gradoData)
+
+                    // Decodificar el accessToken para obtener el rol
+                    const tokenPayload = JSON.parse(atob(session.user.accessToken.split('.')[1]))
+                    setIsAdmin(tokenPayload.rol === 'Administrador')
+
+                    const cursosData = await getCursos(session.user.accessToken)
+                    setCursos(cursosData)
+
+                    const docentesData = await getDocentes(session.user.accessToken)
+                    setDocentes(docentesData)
+
+                    setLoading(false)
+                } catch (error) {
+                    console.error('Error fetching data:', error)
+                    setLoading(false)
+                }
             }
+            fetchData()
         }
+    }, [status, session, params.id, router])
 
-        const fetchCourses = async () => {
-            try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cursos`)
-                if (!response.ok) throw new Error('Failed to fetch courses')
-                const data = await response.json()
-                setCourses(data)
-            } catch (error) {
-                console.error('Error fetching courses:', error)
-                toast({
-                    title: "Error",
-                    description: "No se pudieron cargar los cursos.",
-                    variant: "destructive",
-                })
-            }
-        }
-
-        fetchGradeInfo()
-        fetchCourses()
-    }, [gradeId])
-
-    const toggleSchedule = (dia: string, hora: HoraEnum) => {
-        setSelectedSchedule(prev => {
-            const newSchedule = { ...prev }
-            if (!newSchedule[dia]) {
-                newSchedule[dia] = []
-            }
-            const index = newSchedule[dia].indexOf(hora)
-            if (index > -1) {
-                newSchedule[dia].splice(index, 1)
-            } else {
-                newSchedule[dia].push(hora)
-            }
-            if (newSchedule[dia].length === 0) {
-                delete newSchedule[dia]
-            }
-            return newSchedule
-        })
+    if (status === 'loading' || loading) {
+        return <div>Cargando...</div>
     }
 
-    const handleAddCourse = async () => {
-        if (selectedCourse && selectedTeacher && Object.keys(selectedSchedule).length > 0) {
-            const scheduleData = Object.entries(selectedSchedule).map(([dia, horas]) => ({
-                gradoAcademico_id: gradeId,
-                curso_id: parseInt(selectedCourse),
-                docente_id: parseInt(selectedTeacher),
-                turno: gradeInfo?.turno || "Dia",
-                dia,
-                horas
-            }));
-
-            console.log('Data being sent to the backend:', scheduleData);
-
-            try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/horarios`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(scheduleData),
-                });
-
-                if (!response.ok) throw new Error('Failed to add course to schedule');
-
-                const result = await response.json();
-                console.log('Server response:', result);
-
-                toast({
-                    title: "Curso agregado",
-                    description: "El curso ha sido agregado al horario exitosamente.",
-                });
-
-                setDialogOpen(false);
-                setScheduleDialogOpen(false);
-                setSelectedCourse('');
-                setSelectedTeacher('');
-                setSelectedSchedule({});
-                fetchGradeInfo();
-            } catch (error) {
-                console.error('Error adding course to schedule:', error);
-                toast({
-                    title: "Error",
-                    description: "Hubo un problema al agregar el curso al horario.",
-                    variant: "destructive",
-                });
-            }
-        }
-    };
-
-    const renderCurrentSchedule = () => {
-        const horarioMap = new Map()
-        gradeInfo?.Horario.forEach(h => {
-            const key = `${h.dia}-${h.horaInicio}`
-            horarioMap.set(key, h.curso.area.nombrearea)
-        })
-
-        return (
-            <Card className="mt-6">
-                <CardHeader>
-                    <CardTitle>Horario Actual</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ScrollArea className="h-[400px]">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[100px]">Día</TableHead>
-                                    {horas.map((hora) => (
-                                        <TableHead key={hora}>{hora.replace('_', ' ')}</TableHead>
-                                    ))}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {diasSemana.map((dia) => (
-                                    <TableRow key={dia}>
-                                        <TableCell>{dia}</TableCell>
-                                        {horas.map((hora) => (
-                                            <TableCell key={`${dia}-${hora}`}>
-                                                {horarioMap.get(`${dia}-${hora}`) || ''}
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
-        )
+    if (!gradoAcademico) {
+        return <div>No se pudo cargar la información del grado académico.</div>
     }
 
-    const fetchGradeInfo = async () => {
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/gradosacademicos/${gradeId}`)
-            if (!response.ok) throw new Error('Failed to fetch grade info')
-            const data = await response.json()
-            setGradeInfo(data)
-        } catch (error) {
-            console.error('Error fetching grade info:', error)
-            toast({
-                title: "Error",
-                description: "No se pudo cargar la información del grado.",
-                variant: "destructive",
-            })
+    const estudiantesOrdenados = [...gradoAcademico.Estudiante].sort((a, b) => {
+        const apellidoA = `${a.Persona.apellido_paterno} ${a.Persona.apellido_materno}`.toLowerCase()
+        const apellidoB = `${b.Persona.apellido_paterno} ${b.Persona.apellido_materno}`.toLowerCase()
+        return apellidoA.localeCompare(apellidoB)
+    })
+
+    const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']
+    const horas = [
+        { id: 'Primera_Hora', label: '1ra' },
+        { id: 'Segunda_Hora', label: '2da' },
+        { id: 'Tercera_Hora', label: '3ra' },
+        { id: 'Cuarta_Hora', label: '4ta' },
+        { id: 'Recreo', label: 'Recreo' },
+        { id: 'Quinta_Hora', label: '5ta' },
+        { id: 'Sexta_Hora', label: '6ta' },
+        { id: 'Septima_Hora', label: '7ma' }
+    ]
+
+    const horariosMap = gradoAcademico.Horario.reduce((acc, horario) => {
+        horario.horas.forEach(hora => {
+            acc[`${horario.dia}-${hora}`] = horario.curso.area.nombrearea
+        })
+        return acc
+    }, {} as Record<string, string>)
+
+    // Función para obtener el rowspan de una celda
+    const getRowSpan = (dia: string, horaIndex: number) => {
+        if (horas[horaIndex].id === 'Recreo') return 1
+        let rowSpan = 1
+        const currentCourse = horariosMap[`${dia}-${horas[horaIndex].id}`]
+        while (
+            horaIndex + rowSpan < horas.length &&
+            horas[horaIndex + rowSpan].id !== 'Recreo' &&
+            horariosMap[`${dia}-${horas[horaIndex + rowSpan].id}`] === currentCourse &&
+            currentCourse !== '-' && currentCourse !== undefined
+        ) {
+            rowSpan++
         }
+        return rowSpan
+    }
+
+    // Función para verificar si una celda debe renderizarse
+    const shouldRenderCell = (dia: string, horaIndex: number) => {
+        if (horaIndex === 0 || horas[horaIndex].id === 'Recreo') return true
+        const prevCourse = horariosMap[`${dia}-${horas[horaIndex - 1].id}`]
+        const currentCourse = horariosMap[`${dia}-${horas[horaIndex].id}`]
+        return prevCourse !== currentCourse || currentCourse === '-' || currentCourse === undefined
+    }
+
+    const handleGoBack = () => {
+        router.back()
+    }
+
+    const handleAddCourse = () => {
+        // Aquí iría la lógica para agregar el curso con los valores seleccionados
+        console.log("Agregar curso", { selectedCurso, selectedDocente, selectedAuxiliar })
+        setIsDialogOpen(false)
+    }
+
+    const resetDialog = () => {
+        setSelectedCurso('')
+        setSelectedDocente('')
+        setSelectedAuxiliar('')
     }
 
     return (
         <div className="container mx-auto p-4">
-            <Button variant="outline" className="mb-4" onClick={() => window.history.back()}>
-                <ArrowLeft className="mr-2 h-4 w-4" /> Regresar
-            </Button>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold">Detalles del Grado Académico</h1>
+                <Button onClick={handleGoBack} variant="outline">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Regresar
+                </Button>
+            </div>
 
-            <h1 className="text-3xl font-bold mb-6">Grado Académico: {gradeInfo ? `${gradeInfo.grado} ${gradeInfo.seccion}` : 'Cargando...'}</h1>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <Card className="bg-primary text-primary-foreground">
                     <CardHeader>
-                        <CardTitle>Información de la Sección</CardTitle>
+                        <CardTitle>Información General</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {gradeInfo ? (
-                            <>
-                                <p><strong>Grado:</strong> {gradeInfo.grado}</p>
-                                <p><strong>Sección:</strong> {gradeInfo.seccion}</p>
-                                <p><strong>Turno:</strong> {gradeInfo.turno}</p>
-                                <p><strong>Tutor:</strong> {`${gradeInfo.tutor.Persona.nombres} ${gradeInfo.tutor.Persona.apellido_paterno} ${gradeInfo.tutor.Persona.apellido_materno}`}</p>
-                                <p><strong>Aula:</strong> {`Edificio ${gradeInfo.aula.edificio}, Piso ${gradeInfo.aula.piso}, Aula ${gradeInfo.aula.numeroAula}`}</p>
-                            </>
-                        ) : (
-                            <p>Cargando información...</p>
-                        )}
+                        <p><strong>Grado:</strong> {gradoAcademico.grado}</p>
+                        <p><strong>Sección:</strong> {gradoAcademico.seccion}</p>
+                        <p><strong>Turno:</strong> {gradoAcademico.turno}</p>
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="bg-secondary text-secondary-foreground">
                     <CardHeader>
-                        <CardTitle>Agregar Curso</CardTitle>
+                        <CardTitle>Tutor</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                        <p>{`${gradoAcademico.tutor.Persona.apellido_paterno} ${gradoAcademico.tutor.Persona.apellido_materno}, ${gradoAcademico.tutor.Persona.nombres}`}</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-accent text-accent-foreground">
+                    <CardHeader>
+                        <CardTitle>Aula</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p><strong>Edificio:</strong> {gradoAcademico.aula.edificio}</p>
+                        <p><strong>Piso:</strong> {gradoAcademico.aula.piso}</p>
+                        <p><strong>Número de Aula:</strong> {gradoAcademico.aula.numeroAula}</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <Card className="mb-6">
+                <CardHeader>
+                    <CardTitle>Estudiantes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Apellidos</TableHead>
+                                    <TableHead>Nombres</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {estudiantesOrdenados.map((estudiante) => (
+                                    <TableRow key={estudiante.id}>
+                                        <TableCell>{`${estudiante.Persona.apellido_paterno} ${estudiante.Persona.apellido_materno}`}</TableCell>
+                                        <TableCell>{estudiante.Persona.nombres}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle>Horario</CardTitle>
+                    {isAdmin && (
+                        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                            setIsDialogOpen(open)
+                            if (!open) resetDialog()
+                        }}>
                             <DialogTrigger asChild>
-                                <Button onClick={() => setDialogOpen(true)}>Agregar Curso al Horario</Button>
+                                <Button size="sm">
+                                    <Plus className="mr-2 h-4 w-4" /> Agregar curso
+                                </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-[425px]">
+                            <DialogContent>
                                 <DialogHeader>
                                     <DialogTitle>Agregar Curso al Horario</DialogTitle>
                                 </DialogHeader>
                                 <div className="grid gap-4 py-4">
                                     <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="course" className="text-right">
+                                        <Label htmlFor="curso" className="text-right">
                                             Curso
                                         </Label>
-                                        <Select value={selectedCourse} onValueChange={(value) => {
-                                            setSelectedCourse(value)
-                                            setSelectedTeacher('')
-                                        }}>
+                                        <Select value={selectedCurso} onValueChange={setSelectedCurso}>
                                             <SelectTrigger className="col-span-3">
-                                                <SelectValue placeholder="Seleccionar curso" />
+                                                <SelectValue placeholder="Seleccione un curso" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {courses.map((course) => (
-                                                    <SelectItem key={course.id} value={course.id.toString()}>{course.area.nombrearea}</SelectItem>
+                                                {cursos.map((curso) => (
+                                                    <SelectItem key={curso.id} value={curso.id}>
+                                                        {curso.nombre}
+                                                    </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    {selectedCourse && (
-                                        <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="teacher" className="text-right">
-                                                Docente
-                                            </Label>
-                                            {(courses.find(c => c.id.toString() === selectedCourse)?.DocenteCurso ?? []).length > 0 ? (
-                                                <Select value={selectedTeacher} onValueChange={(value) => setSelectedTeacher(value)}>
-                                                    <SelectTrigger className="col-span-3">
-                                                        <SelectValue placeholder="Seleccionar docente" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {courses.find(c => c.id.toString() === selectedCourse)?.DocenteCurso.map((dc) => (
-                                                            <SelectItem key={dc.id} value={dc.docente.id.toString()}>
-                                                                {`${dc.docente.Persona.nombres} ${dc.docente.Persona.apellido_paterno} ${dc.docente.Persona.apellido_materno}`}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            ) : (
-                                                <Alert className="col-span-3">
-                                                    <AlertCircle className="h-4 w-4" />
-                                                    <AlertTitle>Atención</AlertTitle>
-                                                    <AlertDescription>
-                                                        No hay docentes registrados para este curso.
-                                                    </AlertDescription>
-                                                </Alert>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex justify-end space-x-2">
-                                    <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                                        Cancelar
-                                    </Button>
-                                    <Button
-                                        onClick={() => {
-                                            setScheduleDialogOpen(true)
-                                            setDialogOpen(false)
-                                        }}
-                                        disabled={!selectedCourse || !selectedTeacher}
-                                    >
-                                        Siguiente
-                                    </Button>
-                                </div>
-                            </DialogContent>
-                        </Dialog>
-
-                        <Dialog open={scheduleDialogOpen}
-                            onOpenChange={(open) => {
-                                if (!open) {
-                                    setSelectedSchedule({})
-                                }
-                                setScheduleDialogOpen(open)
-                            }}>
-                            <DialogContent className="sm:max-w-[700px]">
-                                <DialogHeader>
-                                    <DialogTitle>Seleccionar Horario</DialogTitle>
-                                </DialogHeader>
-                                <div className="py-4">
-                                    <ScrollArea className="h-[400px]">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Día</TableHead>
-                                                    {horas.map((hora) => (
-                                                        <TableHead key={hora} className="text-center">{hora.replace('_', ' ')}</TableHead>
-                                                    ))}
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {diasSemana.map((dia) => (
-                                                    <TableRow key={dia}>
-                                                        <TableCell>{dia}</TableCell>
-                                                        {horas.map((hora) => (
-                                                            <TableCell key={`${dia}-${hora}`} className="text-center">
-                                                                <Checkbox
-                                                                    checked={selectedSchedule[dia]?.includes(hora)}
-                                                                    onCheckedChange={() => toggleSchedule(dia, hora)}
-                                                                />
-                                                            </TableCell>
-                                                        ))}
-                                                    </TableRow>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="docente" className="text-right">
+                                            Docente
+                                        </Label>
+                                        <Select value={selectedDocente} onValueChange={setSelectedDocente}>
+                                            <SelectTrigger className="col-span-3">
+                                                <SelectValue placeholder="Seleccione un docente" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {docentes.map((docente) => (
+                                                    <SelectItem key={docente.id} value={docente.id}>
+                                                        {docente.nombre}
+                                                    </SelectItem>
                                                 ))}
-                                            </TableBody>
-                                        </Table>
-                                    </ScrollArea>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="auxiliar" className="text-right">
+                                            Auxiliar
+                                        </Label>
+                                        <Select value={selectedAuxiliar} onValueChange={setSelectedAuxiliar}>
+                                            <SelectTrigger className="col-span-3">
+                                                <SelectValue placeholder="Seleccione un auxiliar" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {docentes.map((docente) => (
+                                                    <SelectItem key={docente.id} value={docente.id}>
+                                                        {docente.nombre}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
-                                <div className="flex justify-end space-x-2">
-                                    <Button variant="outline" onClick={() => {
-                                        setScheduleDialogOpen(false)
-                                        setDialogOpen(true)
-                                        setSelectedSchedule({})
-                                    }}>
-                                        Regresar
-                                    </Button>
-                                    <Button onClick={handleAddCourse} disabled={Object.keys(selectedSchedule).length === 0}>
-                                        Agregar Curso
-                                    </Button>
+                                <div className="flex justify-end">
+                                    <Button onClick={handleAddCourse}>Agregar</Button>
                                 </div>
                             </DialogContent>
                         </Dialog>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <Card className="mt-6">
-                <CardHeader>
-                    <CardTitle>Lista de Alumnos</CardTitle>
+                    )}
                 </CardHeader>
                 <CardContent>
-                    <ScrollArea className="h-[300px]">
+                    <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Nº</TableHead>
-                                    <TableHead>Nombre del Alumno</TableHead>
+                                    <TableHead>Hora</TableHead>
+                                    {dias.map((dia) => (
+                                        <TableHead key={dia}>{dia}</TableHead>
+                                    ))}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {gradeInfo?.Estudiante
-                                    .sort((a, b) => a.Persona.apellido_paterno.localeCompare(b.Persona.apellido_paterno))
-                                    .map((estudiante, index) => (
-                                        <TableRow key={estudiante.id}>
-                                            <TableCell>{index + 1}</TableCell>
-                                            <TableCell>{`${estudiante.Persona.apellido_paterno} ${estudiante.Persona.apellido_materno}, ${estudiante.Persona.nombres}`}</TableCell>
-                                        </TableRow>
-                                    ))}
+                                {horas.map((hora, horaIndex) => (
+                                    <TableRow key={hora.id}>
+                                        <TableCell>{hora.label}</TableCell>
+                                        {hora.id === 'Recreo' ? (
+                                            <TableCell colSpan={5} className="text-center font-bold bg-muted">
+                                                Recreo
+                                            </TableCell>
+                                        ) : (
+                                            dias.map((dia) => {
+                                                if (shouldRenderCell(dia, horaIndex)) {
+                                                    const rowSpan = getRowSpan(dia, horaIndex)
+                                                    return (
+                                                        <TableCell key={`${dia}-${hora.id}`} rowSpan={rowSpan}>
+                                                            {horariosMap[`${dia}-${hora.id}`] || '-'}
+                                                        </TableCell>
+                                                    )
+                                                }
+                                                return null
+                                            })
+                                        )}
+                                    </TableRow>
+                                ))}
                             </TableBody>
                         </Table>
-                    </ScrollArea>
+                    </div>
                 </CardContent>
             </Card>
-
-            {renderCurrentSchedule()}
         </div>
     )
 }
