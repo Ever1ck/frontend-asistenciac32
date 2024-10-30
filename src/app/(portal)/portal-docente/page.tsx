@@ -1,3 +1,7 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Calendar } from 'lucide-react'
@@ -11,17 +15,46 @@ import {
     TableRow,
 } from "@/components/ui/table"
 
-const subjects = [
-    { name: 'Matematicas', classroom: 'Primero | A', students: 35 },
-    { name: 'Matematicas', classroom: 'Primero | B', students: 35 },
-    { name: 'Matematicas', classroom: 'Primero | C', students: 35 },
-    { name: 'Matematicas', classroom: 'Segundo | A', students: 35 },
-    { name: 'Matematicas', classroom: 'Tercero | D', students: 35 },
-    { name: 'Matematicas', classroom: 'Cuarto | F', students: 35 },
-    { name: 'Ciencia y Tecnologia', classroom: 'Segundo | B', students: 32 },
-    { name: 'Literatura', classroom: 'Tercero | C', students: 30 },
-    { name: 'Historia', classroom: 'Cuarto | A', students: 33 },
-]
+interface DocenteInfo {
+  id: number;
+  email: string;
+  persona: {
+    nombres: string;
+    apellido_paterno: string;
+    apellido_materno: string;
+    fecha_nacimiento: string;
+  };
+  docentecurso: Array<{
+    id: number;
+    docente_id: number;
+    curso_id: number;
+    created_at: string;
+    updated_at: string;
+    curso: {
+      area: {
+        nombrearea: string;
+      };
+    };
+  }>;
+  horario: Array<{
+    dia: string;
+    horas: string[];
+    gradoAcademico: {
+      grado: string;
+      seccion: string;
+      turno: string;
+      id: number;
+      _count: {
+        Estudiante: number;
+      };
+    };
+    curso: {
+      area: {
+        nombrearea: string;
+      };
+    };
+  }>;
+}
 
 const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']
 const hours = ['1', '2', '3', '4', 'R', '5', '6', '7']
@@ -30,123 +63,56 @@ const timeRanges = [
     '10:10 - 10:20', '10:20 - 11:00', '11:00 - 11:40', '11:40 - 12:30'
 ]
 
-const schedule = {
-    dayShift: [
-        [
-            { subject: 'Matematica', classroom: 'Primero | A' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: 'RECESO', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-        ],
-        [
-            { subject: '', classroom: '' },
-            { subject: 'Matematica', classroom: 'Segundo | A' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: 'RECESO', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-        ],
-        [
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: 'Matematica', classroom: 'Tercero | D' },
-            { subject: '', classroom: '' },
-            { subject: 'RECESO', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-        ],
-        [
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: 'RECESO', classroom: '' },
-            { subject: 'Matematica', classroom: 'Cuarto | F' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-        ],
-        [
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: 'Matematica', classroom: 'Primero | B' },
-            { subject: '', classroom: '' },
-            { subject: 'RECESO', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-        ],
-    ],
-    afternoonShift: [
-        [
-            { subject: '', classroom: '' },
-            { subject: 'Matematica', classroom: 'Primero | C' },
-            { subject: 'Historia', classroom: 'Cuarto | A' },
-            { subject: '', classroom: '' },
-            { subject: 'RECESO', classroom: '' },
-            { subject: 'Literatura', classroom: 'Tercero | C' },
-            { subject: '', classroom: '' },
-            { subject: 'Matematica', classroom: 'Segundo | A' },
-        ],
-        [
-            { subject: 'Matematica', classroom: 'Tercero | D' },
-            { subject: '', classroom: '' },
-            { subject: 'Literatura', classroom: 'Tercero | C' },
-            { subject: '', classroom: '' },
-            { subject: 'RECESO', classroom: '' },
-            { subject: 'Historia', classroom: 'Cuarto | A' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-        ],
-        [
-            { subject: 'Historia', classroom: 'Cuarto | A' },
-            { subject: 'Literatura', classroom: 'Tercero | C' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: 'RECESO', classroom: '' },
-            { subject: 'Matematica', classroom: 'Primero | C' },
-            { subject: '', classroom: '' },
-            { subject: 'Arte', classroom: 'Segundo | B' },
-        ],
-        [
-            { subject: 'Literatura', classroom: 'Tercero | C' },
-            { subject: 'Historia', classroom: 'Cuarto | A' },
-            { subject: 'Matematica', classroom: 'Segundo | A' },
-            { subject: '', classroom: '' },
-            { subject: 'RECESO', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-        ],
-        [
-            { subject: 'Arte', classroom: 'Segundo | B' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: '', classroom: '' },
-            { subject: 'RECESO', classroom: '' },
-            { subject: 'Matematica', classroom: 'Tercero | D' },
-            { subject: 'Historia', classroom: 'Cuarto | A' },
-            { subject: 'Literatura', classroom: 'Tercero | C' },
-        ],
-    ],
+const getHourName = (hour: number): string => {
+  const hourNames = ['Primera', 'Segunda', 'Tercera', 'Cuarta', 'Quinta', 'Sexta', 'Septima'];
+  return `${hourNames[hour - 1]}_Hora`;
 }
 
 export default function Component() {
-    const groupedSubjects = subjects.reduce<Record<string, typeof subjects>>((acc, subject) => {
-        if (!acc[subject.name]) {
-            acc[subject.name] = [];
-        }
-        acc[subject.name].push(subject);
-        return acc;
-    }, {});
+    const { data: session } = useSession()
+    const [docenteInfo, setDocenteInfo] = useState<DocenteInfo | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
-    const renderSchedule = (shift: 'dayShift' | 'afternoonShift') => (
+    useEffect(() => {
+        const fetchDocenteInfo = async () => {
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/docentes/docenteinfo`, {
+                    headers: {
+                        Authorization: `Bearer ${session?.user?.accessToken}`,
+                    },
+                })
+                if (!response.ok) {
+                    throw new Error('Failed to fetch docente info')
+                }
+                const data = await response.json()
+                setDocenteInfo(data)
+            } catch (err) {
+                setError('Error fetching docente info')
+                console.error(err)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        if (session?.user?.accessToken) {
+            fetchDocenteInfo()
+        }
+    }, [session])
+
+    if (isLoading) {
+        return <div>Loading...</div>
+    }
+
+    if (error) {
+        return <div>Error: {error}</div>
+    }
+
+    if (!docenteInfo) {
+        return <div>No data available</div>
+    }
+
+    const renderSchedule = (turno: string) => (
         <Table className="border-collapse">
             <TableHeader>
                 <TableRow>
@@ -171,18 +137,23 @@ export default function Component() {
                                 <span className="text-red-600 dark:text-red-100 font-semibold">RECESO</span>
                             </TableCell>
                         ) : (
-                            schedule[shift].map((day, dayIndex) => (
-                                <TableCell key={`${shift}-${dayIndex}`} className="text-center border-r last:border-r-0 p-0">
-                                    {day[hourIndex].subject ? (
-                                        <Button variant="ghost" className="w-full h-full rounded-none hover:bg-primary/10 flex flex-col items-center justify-center">
-                                            <span>{day[hourIndex].subject}</span>
-                                            <span className="text-xs text-gray-500">{day[hourIndex].classroom}</span>
-                                        </Button>
-                                    ) : (
-                                        <span className="block py-2">&nbsp;</span>
-                                    )}
-                                </TableCell>
-                            ))
+                            days.map((day) => {
+                                const classForThisSlot = docenteInfo.horario.find(
+                                    (h) => h.dia === day && h.horas.includes(`${getHourName(hourIndex + 1)}`) && h.gradoAcademico.turno === turno
+                                )
+                                return (
+                                    <TableCell key={day} className="text-center border-r last:border-r-0 p-0">
+                                        {classForThisSlot ? (
+                                            <Button variant="ghost" className="w-full h-full rounded-none hover:bg-primary/10 flex flex-col items-center justify-center">
+                                                <span>{classForThisSlot.curso.area.nombrearea}</span>
+                                                <span className="text-xs text-gray-500">{`${classForThisSlot.gradoAcademico.grado} | ${classForThisSlot.gradoAcademico.seccion}`}</span>
+                                            </Button>
+                                        ) : (
+                                            <span className="block py-2">&nbsp;</span>
+                                        )}
+                                    </TableCell>
+                                )
+                            })
                         )}
                     </TableRow>
                 ))}
@@ -196,32 +167,43 @@ export default function Component() {
                 <div className="w-full lg:w-2/5">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Cursos</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
-                        {Object.entries(groupedSubjects).map(([subjectName, sections]) => (
-                            <Card key={subjectName}>
-                                <CardHeader>
-                                    <CardTitle>{subjectName}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-2">
-                                        {sections.map((section, index) => (
-                                            <div key={index} className="flex justify-between items-center">
-                                                <div>
-                                                    <p className="font-medium">{section.classroom}</p>
-                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                        Estudiantes: {section.students}
-                                                    </p>
-                                                </div>
-                                                <Link href={`/portal-docente/curso/asistencia/${index + 1}`}>
-                                                    <Button variant="ghost">
-                                                        <Calendar className="h-5 w-5 mr-2" /> Asistencia
-                                                    </Button>
-                                                </Link>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                        {docenteInfo.docentecurso.map((curso) => {
+                            return (
+                                <Card key={curso.id}>
+                                    <CardHeader>
+                                        <CardTitle>{curso.curso.area.nombrearea}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-4">
+                                            {Object.values(docenteInfo.horario
+                                                .filter(h => h.curso.area.nombrearea === curso.curso.area.nombrearea)
+                                                .reduce((acc, h) => {
+                                                    const key = `${h.gradoAcademico.grado} ${h.gradoAcademico.seccion}`;
+                                                    if (!acc[key]) {
+                                                        acc[key] = h.gradoAcademico;
+                                                    }
+                                                    return acc;
+                                                }, {} as Record<string, typeof docenteInfo.horario[0]['gradoAcademico']>))
+                                                .map((grado, index) => (
+                                                    <div key={index} className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
+                                                        <div>
+                                                            <p className="font-medium">{`${grado.grado} ${grado.seccion}`}</p>
+                                                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                                Estudiantes: {grado._count.Estudiante}
+                                                            </p>
+                                                        </div>
+                                                        <Link href={`/portal-docente/cursos/${curso.id}/grado-academico/${grado.id}/asistencia`}>
+                                                            <Button variant="outline" size="sm">
+                                                                <Calendar className="h-4 w-4 mr-2" /> Asistencia
+                                                            </Button>
+                                                        </Link>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -233,7 +215,7 @@ export default function Component() {
                                 <CardTitle>Turno Día</CardTitle>
                             </CardHeader>
                             <CardContent className="overflow-x-auto">
-                                {renderSchedule('dayShift')}
+                                {renderSchedule('Dia')}
                             </CardContent>
                         </Card>
 
@@ -242,7 +224,7 @@ export default function Component() {
                                 <CardTitle>Turno Tarde</CardTitle>
                             </CardHeader>
                             <CardContent className="overflow-x-auto">
-                                {renderSchedule('afternoonShift')}
+                                {renderSchedule('Tarde')}
                             </CardContent>
                         </Card>
                     </div>

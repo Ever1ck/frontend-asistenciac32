@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
@@ -55,21 +56,6 @@ interface GradoAcademico {
   aula: Aula
 }
 
-async function getGradoAcademico(id: string, accessToken: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/gradosacademicos`, {
-      headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-      },
-      cache: 'no-store'
-  })
-  if (!res.ok) {
-      throw new Error('Failed to fetch grado academico')
-  }
-  return res.json()
-}
-
-
 const gradoAcademicoSchema = z.object({
   grado: z.enum(["Primero", "Segundo", "Tercero", "Cuarto", "Quinto"]),
   seccion: z.string().min(1, "La sección es requerida"),
@@ -81,6 +67,7 @@ const gradoAcademicoSchema = z.object({
 type GradoAcademicoFormValues = z.infer<typeof gradoAcademicoSchema>
 
 export default function GradoAcademicoView() {
+  const { data: session, status } = useSession()
   const [grados, setGrados] = useState<GradoAcademico[]>([])
   const [docentes, setDocentes] = useState<Docente[]>([])
   const [aulas, setAulas] = useState<Aula[]>([])
@@ -106,14 +93,20 @@ export default function GradoAcademicoView() {
   })
 
   useEffect(() => {
-    fetchGrados()
-    fetchDocentes()
-    fetchAulas()
-  }, [])
+    if (status === 'authenticated') {
+      fetchGrados()
+      fetchDocentes()
+      fetchAulas()
+    }
+  }, [status])
 
   const fetchGrados = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/gradosacademicos`)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/gradosacademicos`, {
+        headers: {
+          'Authorization': `Bearer ${session?.user?.accessToken}`,
+        },
+      })
       if (!response.ok) throw new Error('Error al obtener los grados académicos')
       const data = await response.json()
       setGrados(data)
@@ -170,6 +163,7 @@ export default function GradoAcademicoView() {
         method: method,
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.user?.accessToken}`,
         },
         body: JSON.stringify(values),
       })
@@ -255,17 +249,25 @@ export default function GradoAcademicoView() {
     }
   }
 
-  const filteredDocentes = docentes.filter(docente => 
+  const filteredDocentes = docentes.filter(docente =>
     `${docente.Persona.nombres} ${docente.Persona.apellido_paterno} ${docente.Persona.apellido_materno}`
       .toLowerCase()
       .includes(searchTutor.toLowerCase())
   )
 
-  const filteredAulas = aulas.filter(aula => 
+  const filteredAulas = aulas.filter(aula =>
     `Edificio ${aula.edificio}, Piso ${aula.piso}, Aula ${aula.numeroAula}`
       .toLowerCase()
       .includes(searchAula.toLowerCase())
   )
+
+  if (status === 'loading') {
+    return <div>Loading...</div>
+  }
+
+  if (status === 'unauthenticated') {
+    return <div>Access Denied. Please log in.</div>
+  }
 
   return (
     <div className="container mx-auto p-4">
@@ -335,7 +337,7 @@ export default function GradoAcademicoView() {
                         <FormLabel>Tutor</FormLabel>
                         <div className="flex items-center space-x-2">
                           <FormControl>
-                            <Input 
+                            <Input
                               {...field}
                               readOnly
                               value={docentes.find(d => d.id === field.value)?.Persona.nombres || ''}
@@ -355,11 +357,11 @@ export default function GradoAcademicoView() {
                         <FormLabel>Aula</FormLabel>
                         <div className="flex items-center space-x-2">
                           <FormControl>
-                            <Input 
+                            <Input
                               {...field}
                               readOnly
-                              value={aulas.find(a => a.id === field.value) ? 
-                                `Edificio ${aulas.find(a => a.id === field.value)?.edificio}, Piso ${aulas.find(a => a.id === field.value)?.piso}, Aula ${aulas.find(a => a.id === field.value)?.numeroAula}` : 
+                              value={aulas.find(a => a.id === field.value) ?
+                                `Edificio ${aulas.find(a => a.id === field.value)?.edificio}, Piso ${aulas.find(a => a.id === field.value)?.piso}, Aula ${aulas.find(a => a.id === field.value)?.numeroAula}` :
                                 ''}
                             />
                           </FormControl>
@@ -444,15 +446,15 @@ export default function GradoAcademicoView() {
             <DialogTitle>Asignar Tutor</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <Input 
-              placeholder="Buscar tutor..." 
-              value={searchTutor} 
-              onChange={(e) => setSearchTutor(e.target.value)} 
+            <Input
+              placeholder="Buscar tutor..."
+              value={searchTutor}
+              onChange={(e) => setSearchTutor(e.target.value)}
             />
             <div className="max-h-60 overflow-y-auto">
               {filteredDocentes.map((docente) => (
-                <Button 
-                  key={docente.id} 
+                <Button
+                  key={docente.id}
                   onClick={() => handleAssignTutor(docente)}
                   className="w-full justify-start mb-2"
                 >
@@ -470,15 +472,15 @@ export default function GradoAcademicoView() {
             <DialogTitle>Asignar Aula</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <Input 
-              placeholder="Buscar aula..." 
-              value={searchAula} 
-              onChange={(e) => setSearchAula(e.target.value)} 
+            <Input
+              placeholder="Buscar aula..."
+              value={searchAula}
+              onChange={(e) => setSearchAula(e.target.value)}
             />
             <div className="max-h-60 overflow-y-auto">
               {filteredAulas.map((aula) => (
-                <Button 
-                  key={aula.id} 
+                <Button
+                  key={aula.id}
                   onClick={() => handleAssignAula(aula)}
                   className="w-full justify-start mb-2"
                 >

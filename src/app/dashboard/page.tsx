@@ -207,7 +207,7 @@ export default function RoleBasedModules() {
             </div>
             <div className="mb-4">
               <Image
-                src={`${process.env.NEXT_PUBLIC_BACKEND_IMAGES}/${userProfile.avatar}` || "/placeholder.svg?height=100&width=100"}
+                src={`${process.env.NEXT_PUBLIC_BACKEND_IMAGES}/${userProfile.avatar}` || "/logo.png?height=100&width=100"}
                 alt="Foto de perfil"
                 width={100}
                 height={100}
