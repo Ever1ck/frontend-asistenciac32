@@ -21,6 +21,7 @@ interface UserProfile {
   email: string;
   rol: string;
   persona: Persona;
+  avatar: string;
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
