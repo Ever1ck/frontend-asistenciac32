@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { toast } from "@/hooks/use-toast"
 
 
 interface Curso {
@@ -258,6 +259,7 @@ export default function GradoAcademicoPage({ params }: { params: { id: string } 
     }
 
     const handleHourSelection = (day: string, hour: string) => {
+        if (hour === 'Recreo') return; // Prevent selection of recreation hour
         const hourKey = `${day}-${hour}`
         setSelectedHours(prev => {
             const newSelection = prev.includes(hourKey)
@@ -276,15 +278,63 @@ export default function GradoAcademicoPage({ params }: { params: { id: string } 
     }
 
     const isHourSelectable = (day: string, hour: string) => {
+        if (hour === 'Recreo') return false; // Recreation hour is not selectable
         const hourKey = `${day}-${hour}`
         return !horariosMap[hourKey] && (selectedDay === '' || selectedDay === day)
     }
 
-    const handleAddCourse = () => {
-        // Here you would implement the logic to add the course with the selected hours
-        console.log("Agregar curso", { selectedCurso, selectedDocente, selectedHours })
-        setIsDialogOpen(false)
-        resetDialog()
+    const handleAddCourse = async () => {
+        if (!gradoAcademico || !selectedCurso || !selectedDocente || selectedHours.length === 0) {
+            toast({
+                title: "Error",
+                description: "Por favor, complete todos los campos requeridos.",
+                variant: "destructive",
+            })
+            return
+        }
+
+        const data = {
+            gradoAcademico_id: parseInt(params.id),
+            curso_id: parseInt(selectedCurso),
+            docente_id: parseInt(selectedDocente),
+            turno: gradoAcademico.turno,
+            dia: selectedDay,
+            horas: selectedHours.map(h => h.split('-')[1])
+        }
+
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/horarios`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.user?.accessToken}`,
+                },
+                body: JSON.stringify(data),
+            })
+
+            if (!response.ok) {
+                throw new Error('Failed to add course to schedule')
+            }
+
+            toast({
+                title: "Éxito",
+                description: "El curso ha sido agregado al horario.",
+            })
+
+            // Refresh the page data
+            const updatedGradoData = await getGradoAcademico(params.id, session?.user?.accessToken || '')
+            setGradoAcademico(updatedGradoData)
+
+            setIsDialogOpen(false)
+            resetDialog()
+        } catch (error) {
+            console.error('Error adding course to schedule:', error)
+            toast({
+                title: "Error",
+                description: "Hubo un problema al agregar el curso al horario.",
+                variant: "destructive",
+            })
+        }
     }
 
     const resetDialog = () => {
@@ -450,11 +500,13 @@ export default function GradoAcademicoPage({ params }: { params: { id: string } 
                                                             return (
                                                                 <TableCell
                                                                     key={hourKey}
-                                                                    className={`cursor-pointer text-center ${isSelected
-                                                                            ? 'bg-primary text-primary-foreground'
-                                                                            : isSelectable
-                                                                                ? 'hover:bg-muted'
-                                                                                : 'bg-muted text-muted-foreground'
+                                                                    className={`cursor-pointer text-center ${hora.id === 'Recreo'
+                                                                            ? 'bg-muted text-muted-foreground'
+                                                                            : isSelected
+                                                                                ? 'bg-primary text-primary-foreground'
+                                                                                : isSelectable
+                                                                                    ? 'hover:bg-muted'
+                                                                                    : 'bg-muted text-muted-foreground'
                                                                         }`}
                                                                     onClick={() => isSelectable && handleHourSelection(dia, hora.id)}
                                                                 >
