@@ -10,32 +10,15 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { signOut } from "next-auth/react"
 import Link from "next/link"
+import type { UserProfile } from "@/types"
 
-const logo = "/logoc32.png"
+const DEFAULT_AVATAR = "https://cdn.icon-icons.com/icons2/1378/PNG/512/avatardefault_92824.png"
 
-interface Persona {
-  id: number;
-  dni: string;
-  nombres: string;
-  apellido_paterno: string;
-  apellido_materno: string;
-  fecha_nacimiento: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface UserProfile {
-  email: string;
-  rol: string;
-  persona: Persona;
-  avatar: string;
-}
-
-type HeaderProps = {
-  toggleSidebar: () => void
-  theme: string | undefined
-  setTheme: (theme: string) => void
-  userProfile: UserProfile | null
+interface HeaderProps {
+  toggleSidebar: () => void;
+  theme: string | undefined;
+  setTheme: (theme: string) => void;
+  userProfile: UserProfile | null;
 }
 
 export default function Header({ toggleSidebar, theme, setTheme, userProfile }: HeaderProps) {
@@ -43,39 +26,39 @@ export default function Header({ toggleSidebar, theme, setTheme, userProfile }: 
     ? `${userProfile.persona.nombres} ${userProfile.persona.apellido_paterno}`
     : 'Usuario'
 
+  const avatarUrl = userProfile?.avatar
+    ? `${process.env.NEXT_PUBLIC_BACKEND_IMAGES}/${userProfile.avatar}`
+    : DEFAULT_AVATAR
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-16 px-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-      <div className="flex items-center">
+    <header className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b bg-background px-4 dark:border-gray-700">
+      <div className="flex items-center gap-2">
         <Button
           variant="ghost"
           size="icon"
-          className="lg:flex"
           onClick={toggleSidebar}
           aria-label="Toggle menu"
         >
           <Menu className="h-6 w-6" />
         </Button>
-        <div className="h-10 flex items-center ml-2 text-xl font-semibold">
+        <div className="flex h-10 items-center text-xl font-semibold">
           <Image
-            src={logo}
-            alt="Picture of the author"
-            sizes="100vw"
-            style={{
-              width: 'auto',
-              height: '100%',
-            }}
-            width={500}
-            height={300}
+            src="/logoc32.png"
+            alt="Logo Comercio 32"
+            width={40}
+            height={40}
+            className="h-auto w-auto"
+            priority
           />
-          <p className=" mx-2">Comercio 32</p>
+          <span className="ml-2 hidden md:inline">Comercio 32</span>
         </div>
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center gap-2">
             <Image
-              src={userProfile ? `${process.env.NEXT_PUBLIC_BACKEND_IMAGES}/${userProfile.avatar}` : "https://cdn.icon-icons.com/icons2/1378/PNG/512/avatardefault_92824.png"}
-              alt="Avatar"
+              src={avatarUrl}
+              alt="Avatar del usuario"
               width={32}
               height={32}
               className="rounded-full"
@@ -84,13 +67,13 @@ export default function Header({ toggleSidebar, theme, setTheme, userProfile }: 
             <ChevronDown className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem>
-            <User className="mr-2 h-4 w-4" />
-            <Link href={'/portal/profile'}>
+        <DropdownMenuContent align="end" className="w-56">
+          <Link href="/portal/profile" className="w-full">
+            <DropdownMenuItem>
+              <User className="mr-2 h-4 w-4" />
               <span>Perfil</span>
-            </Link>
-          </DropdownMenuItem>
+            </DropdownMenuItem>
+          </Link>
           <DropdownMenuItem>
             <Settings className="mr-2 h-4 w-4" />
             <span>Configuración</span>
@@ -104,7 +87,10 @@ export default function Header({ toggleSidebar, theme, setTheme, userProfile }: 
             <span>{theme === "dark" ? "Tema Claro" : "Tema Oscuro"}</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/login', redirect:true })}>
+          <DropdownMenuItem
+            onClick={() => signOut({ callbackUrl: '/login', redirect: true })}
+            className="text-destructive focus:text-destructive"
+          >
             <LogOut className="mr-2 h-4 w-4" />
             <span>Cerrar Sesión</span>
           </DropdownMenuItem>

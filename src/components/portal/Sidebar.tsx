@@ -1,126 +1,131 @@
 import Link from "next/link"
-import { ChevronRight, DollarSign, BarChart2, Calendar, Mail, FileText, FileSpreadsheet, Users, Settings, Activity, User } from "lucide-react"
+import { ChevronRight, DollarSign, BarChart2, Calendar, Mail, FileText, FileSpreadsheet, Users, Settings, Activity, User, School, GraduationCap, BookOpen, Layers } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import type { Role, UserProfile, MenuItem, RoleMenuItem } from "@/types"
 
-type Role = "Usuario" | "Docente" | "Auxiliar" | "Secretaria" | "Innovacion" | "Subdirector" | "Director" | "Administrador"
-
-const roleMenuItems: Record<Role, { name: string; icon: React.ReactNode }[]> = {
-  Usuario: [
-    { name: "Dashboard", icon: <BarChart2 className="h-4 w-4" /> },
-    { name: "Perfil", icon: <User className="h-4 w-4" /> },
-  ],
-  Docente: [
-    { name: "Pagos", icon: <DollarSign className="h-4 w-4" /> },
-    { name: "Reportes", icon: <BarChart2 className="h-4 w-4" /> },
-  ],
-  Auxiliar: [
-    { name: "Estadísticas", icon: <BarChart2 className="h-4 w-4" /> },
-    { name: "Informes", icon: <FileText className="h-4 w-4" /> },
-  ],
-  Secretaria: [
-    { name: "Agenda", icon: <Calendar className="h-4 w-4" /> },
-    { name: "Correspondencia", icon: <Mail className="h-4 w-4" /> },
-  ],
-  Innovacion: [
-    { name: "Trámites", icon: <FileText className="h-4 w-4" /> },
-    { name: "Documentos", icon: <FileSpreadsheet className="h-4 w-4" /> },
-  ],
-  Subdirector: [
-    { name: "Administrar Actas", icon: <FileText className="h-4 w-4" /> },
-    { name: "Generar PDF", icon: <FileSpreadsheet className="h-4 w-4" /> },
-    { name: "Actas Generadas", icon: <FileSpreadsheet className="h-4 w-4" /> },
-  ],
-  Director: [
-    { name: "Usuarios", icon: <Users className="h-4 w-4" /> },
-    { name: "Configuración", icon: <Settings className="h-4 w-4" /> },
-    { name: "Logs", icon: <Activity className="h-4 w-4" /> },
-  ],
-  Administrador: [
-    { name: "Usuarios", icon: <Users className="h-4 w-4" /> },
-    { name: "Configuración", icon: <Settings className="h-4 w-4" /> },
-    { name: "Logs", icon: <Activity className="h-4 w-4" /> },
-  ],
+const roleMenuItems: Record<Role, RoleMenuItem> = {
+  Usuario: {
+    label: "Usuario",
+    items: [
+      { name: "Dashboard", icon: <BarChart2 className="h-4 w-4" />, path: "/portal/dashboard" },
+      { name: "Perfil", icon: <User className="h-4 w-4" />, path: "/portal/profile" },
+    ],
+  },
+  Docente: {
+    label: "Docente",
+    items: [
+      { name: "Inicio", icon: <DollarSign className="h-4 w-4" />, path: "/portal-docente" },
+      { name: "Reportes", icon: <BarChart2 className="h-4 w-4" />, path: "/portal-docente/reportes" },
+    ],
+  },
+  Auxiliar: {
+    label: "Auxiliar",
+    items: [
+      { name: "Actividades", icon: <Activity className="h-4 w-4" />, path: "/portal/actividades" },
+    ],
+  },
+  Secretaria: {
+    label: "Secretaria",
+    items: [
+      { name: "Calendario", icon: <Calendar className="h-4 w-4" />, path: "/portal/calendario" },
+      { name: "Correos", icon: <Mail className="h-4 w-4" />, path: "/portal/correos" },
+    ],
+  },
+  Innovacion: {
+    label: "Innovacion",
+    items: [
+      { name: "Proyectos", icon: <FileText className="h-4 w-4" />, path: "/portal/proyectos" },
+    ],
+  },
+  Subdirector: {
+    label: "Subdirector",
+    items: [
+      { name: "Informes", icon: <FileSpreadsheet className="h-4 w-4" />, path: "/portal/informes" },
+    ],
+  },
+  Administrador: {
+    label: "Administrador",
+    items: [
+      { name: "Usuarios", icon: <Users className="h-4 w-4" />, path: "/portal-administrador/usuarios" },
+      { name: "Docentes", icon: <GraduationCap className="h-4 w-4" />, path: "/portal-administrador/docentes" },
+      { name: "Aulas", icon: <School className="h-4 w-4" />, path: "/portal-administrador/aulas" },
+      { name: "Cursos", icon: <BookOpen className="h-4 w-4" />, path: "/portal-administrador/cursos" },
+      { name: "Grados Académicos", icon: <FileText className="h-4 w-4" />, path: "/portal-administrador/grados-academicos" },
+      { name: "Módulos", icon: <Layers className="h-4 w-4" />, path: "/portal-administrador/modulos" },
+      { name: "Configuración", icon: <Settings className="h-4 w-4" />, path: "/portal-administrador/configuracion" },
+    ],
+  },
+  Director: {
+    label: "Director",
+    items: [
+      { name: "Reuniones", icon: <Calendar className="h-4 w-4" />, path: "/portal/reuniones" },
+    ],
+  },
 }
 
-interface Persona {
-  id: number;
-  dni: string;
-  nombres: string;
-  apellido_paterno: string;
-  apellido_materno: string;
-  fecha_nacimiento: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface UserProfile {
-  email: string;
-  rol: string;
-  persona: Persona;
-}
-
-type SidebarProps = {
-  isSidebarOpen: boolean
-  setIsSidebarOpen: (isOpen: boolean) => void
-  userProfile: UserProfile | null
+interface SidebarProps {
+  isSidebarOpen: boolean;
+  setIsSidebarOpen: (isOpen: boolean) => void;
+  userProfile: UserProfile | null;
 }
 
 export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, userProfile }: SidebarProps) {
-  const userRole = (userProfile?.rol as Role) || "Usuario"
+  const userRole = userProfile?.rol || "Usuario"
 
-  const renderMenuItems = (role: Role) => {
-    return (
-      <Collapsible key={role} className="mb-2">
-        <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-left text-gray-600 rounded-lg dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-          <span className="font-medium">{role}</span>
-          <ChevronRight className="h-4 w-4 transition-transform duration-200" />
-        </CollapsibleTrigger>
-        <CollapsibleContent className="pl-4 space-y-1">
-          {roleMenuItems[role].map((item) => (
-            <Link
-              key={item.name}
-              href={`/${role.toLowerCase()}/${item.name.toLowerCase().replace(" ", "-")}`}
-              className="flex items-center p-2 text-sm text-gray-600 rounded-lg dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-            >
-              {item.icon}
-              <span className="ml-2">{item.name}</span>
-            </Link>
-          ))}
-        </CollapsibleContent>
-      </Collapsible>
-    )
-  }
+  const renderMenuItem = (item: MenuItem) => (
+    <Link
+      key={item.path}
+      href={item.path}
+      className="flex items-center rounded-lg p-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+    >
+      {item.icon}
+      <span className="ml-2">{item.name}</span>
+    </Link>
+  )
 
-  const renderAdminMenu = () => {
-    return Object.keys(roleMenuItems).map((role) => renderMenuItems(role as Role))
-  }
+  const renderMenuGroup = (role: Role, menuItem: RoleMenuItem) => (
+    <Collapsible key={role} className="mb-2">
+      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg p-2 text-left transition-colors hover:bg-accent">
+        <span className="font-medium">{menuItem.label}</span>
+        <ChevronRight className="h-4 w-4 transition-transform duration-200" />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="space-y-1 pl-4">
+        {menuItem.items.map(renderMenuItem)}
+      </CollapsibleContent>
+    </Collapsible>
+  )
 
   return (
     <aside
-      className={`fixed top-16 left-0 z-40 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 transform transition-all duration-300 ease-in-out overflow-y-auto lg:sticky 
-        ${isSidebarOpen ? "w-64 translate-x-0" : "w-20 translate-x-0"}`}>
-          
+      className={`fixed top-16 z-40 h-[calc(100vh-4rem)] transform overflow-y-auto bg-background transition-all duration-300 ease-in-out lg:sticky 
+        ${isSidebarOpen ? "w-64 translate-x-0" : "w-20 -translate-x-full lg:translate-x-0"}`}
+    >
       <nav className={`px-4 py-6 ${isSidebarOpen ? "" : "px-2"}`}>
         {isSidebarOpen ? (
-          userRole === "Administrador" ? renderAdminMenu() : renderMenuItems(userRole)
+          userRole === "Administrador"
+            ? Object.entries(roleMenuItems).map(([role, menuItem]) =>
+              renderMenuGroup(role as Role, menuItem)
+            )
+            : renderMenuGroup(userRole, roleMenuItems[userRole])
         ) : (
           <div className="flex flex-col items-center space-y-4">
-            {Object.keys(roleMenuItems).map((role) => (
+            {roleMenuItems[userRole].items.map((item) => (
               <Button
-                key={role}
+                key={item.path}
                 variant="ghost"
                 size="icon"
-                className="w-10 h-10"
-                onClick={() => setIsSidebarOpen(true)}
-                title={role}
+                className="h-10 w-10"
+                asChild
               >
-                <span className="sr-only">{role}</span>
-                {roleMenuItems[role as Role][0].icon}
+                <Link href={item.path} title={item.name}>
+                  {item.icon}
+                  <span className="sr-only">{item.name}</span>
+                </Link>
               </Button>
             ))}
           </div>

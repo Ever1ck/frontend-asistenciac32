@@ -16,44 +16,45 @@ import {
 } from "@/components/ui/table"
 
 interface DocenteInfo {
-  id: number;
-  email: string;
-  persona: {
-    nombres: string;
-    apellido_paterno: string;
-    apellido_materno: string;
-    fecha_nacimiento: string;
-  };
-  docentecurso: Array<{
     id: number;
-    docente_id: number;
-    curso_id: number;
-    created_at: string;
-    updated_at: string;
-    curso: {
-      area: {
-        nombrearea: string;
-      };
+    email: string;
+    persona: {
+        nombres: string;
+        apellido_paterno: string;
+        apellido_materno: string;
+        fecha_nacimiento: string;
     };
-  }>;
-  horario: Array<{
-    dia: string;
-    horas: string[];
-    gradoAcademico: {
-      grado: string;
-      seccion: string;
-      turno: string;
-      id: number;
-      _count: {
-        Estudiante: number;
-      };
-    };
-    curso: {
-      area: {
-        nombrearea: string;
-      };
-    };
-  }>;
+    docentecurso: Array<{
+        id: number;
+        docente_id: number;
+        curso_id: number;
+        created_at: string;
+        updated_at: string;
+        curso: {
+            area: {
+                nombrearea: string;
+            };
+        };
+    }>;
+    horario: Array<{
+        dia: string;
+        horas: string[];
+        gradoAcademico: {
+            grado: string;
+            seccion: string;
+            turno: string;
+            id: number;
+            _count: {
+                Estudiante: number;
+            };
+        };
+        curso: {
+            id: number;
+            area: {
+                nombrearea: string;
+            };
+        };
+    }>;
 }
 
 const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']
@@ -64,8 +65,8 @@ const timeRanges = [
 ]
 
 const getHourName = (hour: number): string => {
-  const hourNames = ['Primera', 'Segunda', 'Tercera', 'Cuarta', 'Quinta', 'Sexta', 'Septima'];
-  return `${hourNames[hour - 1]}_Hora`;
+    const hourNames = ['Primera', 'Segunda', 'Tercera', 'Cuarta', 'Quinta', 'Sexta', 'Septima'];
+    return `${hourNames[hour - 1]}_Hora`;
 }
 
 export default function Component() {
@@ -192,7 +193,7 @@ export default function Component() {
                                                                 Estudiantes: {grado._count.Estudiante}
                                                             </p>
                                                         </div>
-                                                        <Link href={`/portal-docente/cursos/${curso.id}/grado-academico/${grado.id}/asistencia`}>
+                                                        <Link href={`/portal-docente/cursos/${curso.curso_id}/grado-academico/${grado.id}/asistencia`}>
                                                             <Button variant="outline" size="sm">
                                                                 <Calendar className="h-4 w-4 mr-2" /> Asistencia
                                                             </Button>
