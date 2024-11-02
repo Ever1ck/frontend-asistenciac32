@@ -12,7 +12,7 @@ const modules = [
   { name: "Docentes", icon: GraduationCap, description: "Administrar información de docentes", path: "/portal-administrador/docentes" },
   { name: "Aulas", icon: School, description: "Gestionar aulas y espacios", path: "/portal-administrador/aulas" },
   { name: "Cursos", icon: BookOpen, description: "Administrar cursos y programas", path: "/portal-administrador/cursos" },
-  { name: "Grados Académicos", icon: FileText, description: "Gestionar grados y títulos", path: "/portal-administrador/grados" },
+  { name: "Grados Académicos", icon: FileText, description: "Gestionar grados y títulos", path: "/portal-administrador/grados-academicos" },
   { name: "Módulos", icon: Layers, description: "Configurar módulos del sistema", path: "/portal-administrador/modulos" },
   { name: "Configuración", icon: Settings, description: "Ajustes generales del sistema", path: "/portal-administrador/configuracion" },
 ]
