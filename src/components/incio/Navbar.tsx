@@ -1,7 +1,8 @@
+'use client'
+
 import Image from 'next/image'
 import Link from 'next/link'
-import { Button } from "@/components/ui/button"
-import { User, Menu } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 import MobileMenu from './MobileMenu'
 import ClientAuthButton from './ClientAuthButton'
 
@@ -14,13 +15,18 @@ interface NavLinkProps {
 }
 
 const NavLink = ({ href, children, className = '' }: NavLinkProps) => {
+  const pathname = usePathname()
+  const isActive = pathname === href
+
   return (
     <Link
       href={href}
-      className={`relative font-bold uppercase hover:text-yellow-200 transition-colors duration-200 group ${className} text-sm`}
+      className={`relative font-bold uppercase transition-colors duration-200 group ${className} text-sm ${isActive ? 'text-yellow-300' : 'hover:text-yellow-200'
+        }`}
     >
       {children}
-      <span className="absolute left-0 -bottom-3 w-full h-0.5 bg-yellow-300 transition-all duration-300 origin-bottom scale-y-0 group-hover:scale-y-100 hidden md:block"></span>
+      <span className={`absolute left-0 -bottom-3 w-full h-0.5 bg-yellow-300 transition-all duration-300 origin-bottom ${isActive ? 'scale-y-100' : 'scale-y-0 group-hover:scale-y-100'
+        } hidden md:block`}></span>
     </Link>
   )
 }
@@ -54,7 +60,6 @@ export default function Navbar() {
           <ClientAuthButton />
         </nav>
         <div className="flex items-center md:hidden">
-          <ClientAuthButton />
           <MobileMenu />
         </div>
       </div>

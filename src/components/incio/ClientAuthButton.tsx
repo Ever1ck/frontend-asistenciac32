@@ -4,7 +4,14 @@ import { useSession, signIn, signOut } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { User } from 'lucide-react'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { User, LogOut } from 'lucide-react'
+import Link from 'next/link'
 
 interface UserProfile {
     id: number;
@@ -26,9 +33,10 @@ interface UserProfile {
     };
 }
 
-export default function ClientAuthButton() {
+export default function ClientAuthButton({ isMobile = false }) {
     const { data: session, status } = useSession()
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+    const [isMenuOpen, setIsMenuOpen] = useState(false)
 
     useEffect(() => {
         if (session?.user.accessToken) {
@@ -52,28 +60,46 @@ export default function ClientAuthButton() {
         const fullName = `${userProfile.persona.nombres} ${userProfile.persona.apellido_paterno}`
         const avatarUrl = `${process.env.NEXT_PUBLIC_BACKEND_IMAGES}/${userProfile.avatar}`
 
+        if (isMobile) {
+            return null; // El menú móvil manejará la visualización de las opciones de usuario
+        }
+
         return (
-            <Button
-                onClick={() => signOut()}
-                variant="ghost"
-                size="icon"
-                className="rounded-full"
-                aria-label={`Cerrar sesión de ${fullName}`}
-            >
-                <Avatar>
-                    <AvatarImage src={avatarUrl} alt={fullName} />
-                    <AvatarFallback>{fullName.charAt(0)}</AvatarFallback>
-                </Avatar>
-            </Button>
+            <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-full"
+                        aria-label={`Menú de ${fullName}`}
+                    >
+                        <Avatar>
+                            <AvatarImage src={avatarUrl} alt={fullName} />
+                            <AvatarFallback>{fullName.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuItem asChild>
+                        <Link href="/dashboard" className="flex items-center">
+                            <User className="mr-2 h-4 w-4" />
+                            <span>Dashboard</span>
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => signOut()} className="flex items-center">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Cerrar sesión</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
         )
     }
 
     return (
         <Button
             onClick={() => signIn()}
-            variant="outline"
-            size="sm"
-            className="text-white border-white hover:bg-white hover:text-[#2B6BB3]"
+            className={`bg-yellow-400 text-blue-900 hover:bg-yellow-300 transition-colors duration-200 ${isMobile ? 'w-full' : ''
+                }`}
         >
             Iniciar Sesión
         </Button>
