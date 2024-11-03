@@ -57,6 +57,8 @@ interface AttendanceRecord {
     gradoAcademico_id: number;
     estudiante_id: number;
     estadoAsistencia: 'Presente' | 'Tardanza' | 'Falta';
+    estudiante_nombre: string;
+    curso_area: string;
 }
 
 export default function AttendancePage() {
@@ -73,12 +75,13 @@ export default function AttendancePage() {
     const [existingAttendance, setExistingAttendance] = useState<AttendanceRecord[] | null>(null)
     const [hasChanges, setHasChanges] = useState(false)
     const [attendanceRegistered, setAttendanceRegistered] = useState(false)
+    const [cursoArea, setCursoArea] = useState<string>('')
 
-    const fetchExistingAttendance = useCallback(async (gradoAcademico: GradoAcademico) => {
+    const fetchExistingAttendance = useCallback(async () => {
         if (!session?.user?.accessToken) return
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/asistencias?curso_id=${idcurso}&gradoAcademico_id=${idgradoacademico}`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/asistencias/reportegrado/${idgradoacademico}`, {
                 headers: {
                     Authorization: `Bearer ${session.user.accessToken}`,
                 },
@@ -91,16 +94,19 @@ export default function AttendancePage() {
 
             const selectedDateString = format(selectedDate, 'yyyy-MM-dd')
             const attendanceForSelectedDate = data.filter(record =>
-                format(parseISO(record.fecha), 'yyyy-MM-dd') === selectedDateString
+                format(parseISO(record.fecha), 'yyyy-MM-dd') === selectedDateString &&
+                record.curso_id === parseInt(idcurso as string)
             )
 
-            const initialAttendance = gradoAcademico.Estudiante.reduce((acc: Record<number, AttendanceStatus>, student: Student) => {
-                const existingRecord = attendanceForSelectedDate.find(record => record.estudiante_id === student.id)
-                acc[student.id] = existingRecord
-                    ? (existingRecord.estadoAsistencia === 'Presente' ? 'P' : existingRecord.estadoAsistencia === 'Tardanza' ? 'T' : 'F')
-                    : '-'
+            if (attendanceForSelectedDate.length > 0) {
+                setCursoArea(attendanceForSelectedDate[0].curso_area)
+            }
+
+            const initialAttendance = attendanceForSelectedDate.reduce((acc: Record<number, AttendanceStatus>, record) => {
+                acc[record.estudiante_id] = record.estadoAsistencia === 'Presente' ? 'P' : record.estadoAsistencia === 'Tardanza' ? 'T' : 'F'
                 return acc
             }, {})
+
             setAttendance(initialAttendance)
             setOriginalAttendance(initialAttendance)
             setHasChanges(false)
@@ -133,7 +139,7 @@ export default function AttendancePage() {
                     a.Persona.apellido_paterno.localeCompare(b.Persona.apellido_paterno)
                 )
                 setGradoAcademico(data)
-                await fetchExistingAttendance(data)
+                await fetchExistingAttendance()
             } catch (err) {
                 setError('Error fetching grado academico')
                 console.error(err)
@@ -179,7 +185,8 @@ export default function AttendancePage() {
             for (const data of attendanceData) {
                 const existingRecord = existingAttendance?.find(record =>
                     record.estudiante_id === data.estudiante_id &&
-                    format(parseISO(record.fecha), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+                    format(parseISO(record.fecha), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') &&
+                    record.curso_id === parseInt(idcurso as string)
                 )
                 const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/asistencias${existingRecord ? `/${existingRecord.id}` : ''}`
                 const method = existingRecord ? 'PATCH' : 'POST'
@@ -202,7 +209,7 @@ export default function AttendancePage() {
                 title: "Éxito",
                 description: "La asistencia se ha guardado correctamente para todos los estudiantes.",
             });
-            await fetchExistingAttendance(gradoAcademico);
+            await fetchExistingAttendance();
         } catch (error) {
             console.error('Error al enviar las asistencias:', error);
             toast({
@@ -218,8 +225,8 @@ export default function AttendancePage() {
     const handleRegisterAttendance = () => {
         setAttendance(prev => {
             const newAttendance: Record<number, AttendanceStatus> = {};
-            for (const studentId in prev) {
-                newAttendance[studentId] = 'P';
+            for (const student of gradoAcademico?.Estudiante || []) {
+                newAttendance[student.id] = 'P';
             }
             return newAttendance;
         });
@@ -304,14 +311,14 @@ export default function AttendancePage() {
                                     onSelect={(date) => {
                                         if (date) {
                                             setSelectedDate(date)
-                                            fetchExistingAttendance(gradoAcademico)
+                                            fetchExistingAttendance()
                                         }
                                     }}
                                     initialFocus
                                 />
                             </PopoverContent>
                         </Popover>
-                        <div className="flex space-x-2  w-full sm:w-auto">
+                        <div className="flex space-x-2 w-full sm:w-auto">
                             {attendanceRegistered ? (
                                 <>
                                     <Button onClick={handleSubmitAttendance} disabled={isSubmitting || !hasChanges} className="flex-1 sm:flex-none">
@@ -320,6 +327,7 @@ export default function AttendancePage() {
                                     {hasChanges && (
                                         <Button onClick={handleCancelAttendance} variant="outline" className="flex-1 sm:flex-none">
                                             Cancelar
+
                                         </Button>
                                     )}
                                 </>
@@ -329,6 +337,10 @@ export default function AttendancePage() {
                                 </Button>
                             )}
                         </div>
+                    </div>
+                    <div className="mb-4">
+                        <p className="text-sm font-medium text-gray-500">Curso</p>
+                        <p className="text-sm">{cursoArea}</p>
                     </div>
                     <ScrollArea className="h-[calc(100vh-24rem)] rounded-md border">
                         <Table>
@@ -345,7 +357,7 @@ export default function AttendancePage() {
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell>{`${student.Persona.apellido_paterno} ${student.Persona.apellido_materno}, ${student.Persona.nombres}`}</TableCell>
                                         <TableCell className="text-right">
-                                            {attendance[student.id] === '-' ? (
+                                            {attendance[student.id] === undefined ? (
                                                 <span className="inline-block w-10 h-10 leading-10 text-center bg-gray-200 rounded-md">-</span>
                                             ) : (
                                                 <Button
