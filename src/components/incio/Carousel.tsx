@@ -26,7 +26,7 @@ async function getEventos(): Promise<Evento[]> {
 
 const defaultImages = [
   '/carousel/1.jpg',
-  '/carousel/2.jpeg',
+  '/carousel/4.jpg',
   '/carousel/3.jpg',
   '/carousel/4.jpg',
   '/carousel/5.jpg',
