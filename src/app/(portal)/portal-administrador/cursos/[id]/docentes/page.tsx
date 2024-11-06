@@ -1,7 +1,8 @@
-"use client"
+'use client'
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -53,6 +54,7 @@ interface Curso {
 }
 
 export default function AdministrarDocentesCurso() {
+    const { data: session, status } = useSession()
     const params = useParams()
     const router = useRouter()
     const cursoId = params.id as string
@@ -65,9 +67,13 @@ export default function AdministrarDocentesCurso() {
     const [searchTerm, setSearchTerm] = useState("")
 
     useEffect(() => {
-        fetchCursoInfo()
-        fetchDocentesDisponibles()
-    }, [cursoId])
+        if (status === "authenticated") {
+            fetchCursoInfo()
+            fetchDocentesDisponibles()
+        } else if (status === "unauthenticated") {
+            router.push('/login')
+        }
+    }, [status, cursoId])
 
     useEffect(() => {
         const filtered = docentesDisponibles.filter(docente =>
@@ -80,7 +86,11 @@ export default function AdministrarDocentesCurso() {
 
     const fetchCursoInfo = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cursos/${cursoId}`)
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cursos/${cursoId}`, {
+                headers: {
+                    'Authorization': `Bearer ${session?.user?.accessToken}`
+                }
+            })
             if (!response.ok) throw new Error('Error al obtener la información del curso')
             const data = await response.json()
             setCurso(data)
@@ -91,7 +101,11 @@ export default function AdministrarDocentesCurso() {
 
     const fetchDocentesDisponibles = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/docentes`)
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/docentes`, {
+                headers: {
+                    'Authorization': `Bearer ${session?.user?.accessToken}`
+                }
+            })
             if (!response.ok) throw new Error('Error al obtener los docentes disponibles')
             const data = await response.json()
             setDocentesDisponibles(data)
@@ -105,7 +119,10 @@ export default function AdministrarDocentesCurso() {
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/docentecursos`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.user?.accessToken}`
+                },
                 body: JSON.stringify({
                     docente_id: parseInt(selectedDocenteId),
                     curso_id: parseInt(cursoId),
@@ -123,12 +140,19 @@ export default function AdministrarDocentesCurso() {
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/docentecursos/${docenteCursoId}`, {
                 method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${session?.user?.accessToken}`
+                }
             })
             if (!response.ok) throw new Error('Error al eliminar el docente del curso')
             fetchCursoInfo()
         } catch (error) {
             console.error('Error:', error)
         }
+    }
+
+    if (status === "loading") {
+        return <div>Loading...</div>
     }
 
     return (

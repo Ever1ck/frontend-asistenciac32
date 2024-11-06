@@ -10,6 +10,7 @@ import { Users, GraduationCap, School, BookOpen, FileText, Layers, Settings, Sea
 const modules = [
   { name: "Usuarios", icon: Users, description: "Gestionar usuarios del sistema", path: "/portal-administrador/usuarios" },
   { name: "Docentes", icon: GraduationCap, description: "Administrar información de docentes", path: "/portal-administrador/docentes" },
+  { name: "Estudiantes", icon: GraduationCap, description: "Administrar información de los estudiantes", path: "/portal-administrador/estudiantes" },
   { name: "Aulas", icon: School, description: "Gestionar aulas y espacios", path: "/portal-administrador/aulas" },
   { name: "Cursos", icon: BookOpen, description: "Administrar cursos y programas", path: "/portal-administrador/cursos" },
   { name: "Grados Académicos", icon: FileText, description: "Gestionar grados y títulos", path: "/portal-administrador/grados-academicos" },
