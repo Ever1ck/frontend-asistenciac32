@@ -16,6 +16,7 @@ import {
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format, parseISO } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { CalendarIcon, ChevronLeft, Users, Building2, User, Download } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -261,7 +262,19 @@ export default function AttendancePage() {
     const handleDownloadTemplate = () => {
         if (!gradoAcademico) return;
 
-        const worksheet = XLSX.utils.aoa_to_sheet([
+        // Crear la hoja 1 con información del grado académico y curso
+        const infoSheet = XLSX.utils.aoa_to_sheet([
+            ['Información del Grado Académico'],
+            ['Grado', gradoAcademico.grado],
+            ['Sección', gradoAcademico.seccion],
+            ['Tutor', `${gradoAcademico.tutor.Persona.nombres} ${gradoAcademico.tutor.Persona.apellido_paterno} ${gradoAcademico.tutor.Persona.apellido_materno}`],
+            ['Aula', `Edificio ${gradoAcademico.aula.edificio}, Piso ${gradoAcademico.aula.piso}, Aula ${gradoAcademico.aula.numeroAula}`],
+            ['Curso', cursoArea],
+            ['Fecha', format(selectedDate, 'PPP', { locale: es })]
+        ]);
+
+        // Crear la hoja 2 con la lista de estudiantes
+        const studentSheet = XLSX.utils.aoa_to_sheet([
             ['ID', 'Apellido Paterno', 'Apellido Materno', 'Nombres', 'Asistencia (P/T/F)'],
             ...gradoAcademico.Estudiante.map(student => [
                 student.id,
@@ -272,8 +285,22 @@ export default function AttendancePage() {
             ])
         ]);
 
+        // Agregar validación de datos para la columna de asistencia
+        const dataValidation = {
+            type: 'list',
+            allowBlank: false,
+            formula1: '"P,T,F"',
+            showDropDown: true
+        };
+        const range = XLSX.utils.decode_range(studentSheet['!ref'] || 'A1:E1');
+        for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+            const address = XLSX.utils.encode_cell({ r: R, c: 4 }); // columna E
+            studentSheet[address].dataValidation = dataValidation;
+        }
+
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Asistencia");
+        XLSX.utils.book_append_sheet(workbook, infoSheet, "Información");
+        XLSX.utils.book_append_sheet(workbook, studentSheet, "Lista de Estudiantes");
 
         XLSX.writeFile(workbook, `Plantilla_Asistencia_${gradoAcademico.grado}_${gradoAcademico.seccion}_${format(selectedDate, 'yyyy-MM-dd')}.xlsx`);
     }
@@ -320,30 +347,37 @@ export default function AttendancePage() {
                         </div>
                     </div>
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-6">
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant={"outline"}
-                                    className={"w-full sm:w-[240px] justify-start text-left font-normal"}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {format(selectedDate, "PPP")}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    mode="single"
-                                    selected={selectedDate}
-                                    onSelect={(date) => {
-                                        if (date) {
-                                            setSelectedDate(date)
-                                            fetchExistingAttendance()
-                                        }
-                                    }}
-                                    initialFocus
-                                />
-                            </PopoverContent>
-                        </Popover>
+                        <div className="flex items-center space-x-2">
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={"w-[240px] justify-start text-left font-normal"}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {format(selectedDate, "PPP", { locale: es })}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={selectedDate}
+                                        onSelect={(date) => {
+                                            if (date) {
+                                                setSelectedDate(date)
+                                                fetchExistingAttendance()
+                                            }
+                                        }}
+                                        initialFocus
+                                        locale={es}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                            <Button onClick={handleDownloadTemplate} variant="outline">
+                                <Download className="mr-2 h-4 w-4" />
+                                Descargar Plantilla
+                            </Button>
+                        </div>
                         <div className="flex space-x-2 w-full sm:w-auto">
                             {attendanceRegistered ? (
                                 <>
@@ -357,14 +391,10 @@ export default function AttendancePage() {
                                     )}
                                 </>
                             ) : (
-                                <Button onClick={handleRegisterAttendance} className="flex-1 sm:flex-none">
+                                <Button onClick={handleRegisterAttendance} className="w-full sm:w-auto">
                                     Registrar Asistencia
                                 </Button>
                             )}
-                            <Button onClick={handleDownloadTemplate} variant="outline" className="flex-1 sm:flex-none">
-                                <Download className="mr-2 h-4 w-4" />
-                                Descargar Plantilla
-                            </Button>
                         </div>
                     </div>
                     <div className="mb-4">
