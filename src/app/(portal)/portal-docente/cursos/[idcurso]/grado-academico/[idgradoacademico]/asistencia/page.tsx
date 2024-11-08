@@ -16,9 +16,10 @@ import {
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format, parseISO } from 'date-fns'
-import { CalendarIcon, ChevronLeft, Users, Building2, User } from 'lucide-react'
+import { CalendarIcon, ChevronLeft, Users, Building2, User, Download } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { ScrollArea } from "@/components/ui/scroll-area"
+import * as XLSX from 'xlsx'
 
 interface Student {
     id: number;
@@ -163,7 +164,8 @@ export default function AttendancePage() {
                 default: newStatus = 'P';
             }
             const newAttendance = { ...prev, [studentId]: newStatus }
-            setHasChanges(!Object.entries(newAttendance).every(([id, status]) => originalAttendance[parseInt(id)] === status))
+            const changesExist = !Object.entries(newAttendance).every(([id, status]) => originalAttendance[parseInt(id)] === status)
+            setHasChanges(changesExist)
             return newAttendance
         })
     }
@@ -232,11 +234,15 @@ export default function AttendancePage() {
         });
         setAttendanceRegistered(true);
         setHasChanges(true);
+        setOriginalAttendance({});
     };
 
     const handleCancelAttendance = () => {
         setAttendance(originalAttendance);
         setHasChanges(false);
+        if (Object.keys(originalAttendance).length === 0) {
+            setAttendanceRegistered(false);
+        }
     };
 
     const getAttendanceButtonStyle = (status: AttendanceStatus) => {
@@ -250,6 +256,26 @@ export default function AttendancePage() {
 
     const handleGoBack = () => {
         router.back()
+    }
+
+    const handleDownloadTemplate = () => {
+        if (!gradoAcademico) return;
+
+        const worksheet = XLSX.utils.aoa_to_sheet([
+            ['ID', 'Apellido Paterno', 'Apellido Materno', 'Nombres', 'Asistencia (P/T/F)'],
+            ...gradoAcademico.Estudiante.map(student => [
+                student.id,
+                student.Persona.apellido_paterno,
+                student.Persona.apellido_materno,
+                student.Persona.nombres,
+                ''
+            ])
+        ]);
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Asistencia");
+
+        XLSX.writeFile(workbook, `Plantilla_Asistencia_${gradoAcademico.grado}_${gradoAcademico.seccion}_${format(selectedDate, 'yyyy-MM-dd')}.xlsx`);
     }
 
     if (isLoading) return (
@@ -327,15 +353,18 @@ export default function AttendancePage() {
                                     {hasChanges && (
                                         <Button onClick={handleCancelAttendance} variant="outline" className="flex-1 sm:flex-none">
                                             Cancelar
-
                                         </Button>
                                     )}
                                 </>
                             ) : (
-                                <Button onClick={handleRegisterAttendance} className="w-full sm:w-auto">
+                                <Button onClick={handleRegisterAttendance} className="flex-1 sm:flex-none">
                                     Registrar Asistencia
                                 </Button>
                             )}
+                            <Button onClick={handleDownloadTemplate} variant="outline" className="flex-1 sm:flex-none">
+                                <Download className="mr-2 h-4 w-4" />
+                                Descargar Plantilla
+                            </Button>
                         </div>
                     </div>
                     <div className="mb-4">
