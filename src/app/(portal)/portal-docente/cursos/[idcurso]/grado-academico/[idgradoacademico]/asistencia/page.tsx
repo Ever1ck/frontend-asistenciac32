@@ -278,7 +278,7 @@ export default function AttendancePage() {
             ['Tutor', `${gradoAcademico.tutor.Persona.nombres} ${gradoAcademico.tutor.Persona.apellido_paterno} ${gradoAcademico.tutor.Persona.apellido_materno}`],
             ['Aula', `Edificio ${gradoAcademico.aula.edificio}, Piso ${gradoAcademico.aula.piso}, Aula ${gradoAcademico.aula.numeroAula}`],
             ['Curso', cursoArea],
-            ['Fecha', format(selectedDate, 'PPP', { locale: es })]
+            ['Fecha', format(selectedDate, 'yyyy-MM-dd')] // Updated date format
         ]);
 
         const studentSheet = XLSX.utils.aoa_to_sheet([
