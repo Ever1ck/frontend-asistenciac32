@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, isToday } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { CalendarIcon, ChevronLeft, Users, Building2, User, Download } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
@@ -226,6 +226,15 @@ export default function AttendancePage() {
     };
 
     const handleRegisterAttendance = () => {
+        if (!isToday(selectedDate)) {
+            toast({
+                title: "Error",
+                description: "Solo se puede registrar la asistencia para el día de hoy.",
+                variant: "destructive",
+            })
+            return
+        }
+
         setAttendance(prev => {
             const newAttendance: Record<number, AttendanceStatus> = {};
             for (const student of gradoAcademico?.Estudiante || []) {
@@ -262,7 +271,6 @@ export default function AttendancePage() {
     const handleDownloadTemplate = () => {
         if (!gradoAcademico) return;
 
-        // Crear la hoja 1 con información del grado académico y curso
         const infoSheet = XLSX.utils.aoa_to_sheet([
             ['Información del Grado Académico'],
             ['Grado', gradoAcademico.grado],
@@ -273,7 +281,6 @@ export default function AttendancePage() {
             ['Fecha', format(selectedDate, 'PPP', { locale: es })]
         ]);
 
-        // Crear la hoja 2 con la lista de estudiantes
         const studentSheet = XLSX.utils.aoa_to_sheet([
             ['ID', 'Apellido Paterno', 'Apellido Materno', 'Nombres', 'Asistencia (P/T/F)'],
             ...gradoAcademico.Estudiante.map(student => [
@@ -285,7 +292,6 @@ export default function AttendancePage() {
             ])
         ]);
 
-        // Agregar validación de datos para la columna de asistencia
         const dataValidation = {
             type: 'list',
             allowBlank: false,
@@ -294,7 +300,7 @@ export default function AttendancePage() {
         };
         const range = XLSX.utils.decode_range(studentSheet['!ref'] || 'A1:E1');
         for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-            const address = XLSX.utils.encode_cell({ r: R, c: 4 }); // columna E
+            const address = XLSX.utils.encode_cell({ r: R, c: 4 });
             studentSheet[address].dataValidation = dataValidation;
         }
 
@@ -364,6 +370,13 @@ export default function AttendancePage() {
                                         selected={selectedDate}
                                         onSelect={(date) => {
                                             if (date) {
+                                                if (!isToday(date)) {
+                                                    toast({
+                                                        title: "Advertencia",
+                                                        description: "Solo se puede registrar la asistencia para el día de hoy.",
+                                                        variant: "default",
+                                                    })
+                                                }
                                                 setSelectedDate(date)
                                                 fetchExistingAttendance()
                                             }
