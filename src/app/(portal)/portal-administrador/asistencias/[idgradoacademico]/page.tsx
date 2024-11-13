@@ -278,8 +278,8 @@ export default function AttendancePage() {
         dispatch({ type: 'SET_CONFIRM_DIALOG_OPEN', payload: true })
     }, [state.excelInfo, state.gradoAcademico])
 
-    const handleFinalConfirmation = useCallback(() => {
-        if (!state.excelInfo || !state.gradoAcademico) return
+    const handleFinalConfirmation = useCallback(async () => {
+        if (!state.excelInfo || !state.gradoAcademico || !session?.user?.accessToken) return
 
         const matchingCourse = state.gradoAcademico.Horario.find(course =>
             course.curso.area.nombrearea.toLowerCase() === state.excelInfo!.curso.toLowerCase()
@@ -287,13 +287,50 @@ export default function AttendancePage() {
         if (matchingCourse) {
             dispatch({ type: 'SET_SELECTED_COURSE', payload: matchingCourse })
             dispatch({ type: 'SET_ATTENDANCE', payload: state.uploadedAttendance })
-            dispatch({ type: 'SET_SELECTED_DATE', payload: parseISO(state.excelInfo.fecha) })
-            dispatch({ type: 'SET_UPLOAD_DIALOG_OPEN', payload: false })
-            dispatch({ type: 'SET_CONFIRM_DIALOG_OPEN', payload: false })
-            toast({
-                title: "Éxito",
-                description: "La asistencia se ha cargado correctamente desde el archivo.",
-            })
+            const selectedDate = parseISO(state.excelInfo.fecha)
+            dispatch({ type: 'SET_SELECTED_DATE', payload: selectedDate })
+
+            // Prepare attendance data for submission
+            const attendanceData = Array.from(state.uploadedAttendance.entries()).map(([studentId, status]) => ({
+                fecha: format(selectedDate, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"),
+                curso_id: matchingCourse.curso.id,
+                gradoAcademico_id: parseInt(idgradoacademico as string),
+                estudiante_id: studentId,
+                estadoAsistencia: status === 'P' ? 'Presente' : status === 'T' ? 'Tardanza' : 'Falta'
+            }))
+
+            try {
+                // Send attendance data one by one
+                for (const attendance of attendanceData) {
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/asistencias`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${session.user.accessToken}`,
+                        },
+                        body: JSON.stringify(attendance),
+                    })
+
+                    if (!response.ok) {
+                        throw new Error(`Failed to submit attendance for student ${attendance.estudiante_id}`)
+                    }
+                }
+
+                dispatch({ type: 'SET_UPLOAD_DIALOG_OPEN', payload: false })
+                dispatch({ type: 'SET_CONFIRM_DIALOG_OPEN', payload: false })
+                toast({
+                    title: "Éxito",
+                    description: "La asistencia se ha cargado y registrado correctamente desde el archivo.",
+                })
+                await fetchExistingAttendance()
+            } catch (error) {
+                console.error('Error al enviar las asistencias:', error)
+                toast({
+                    title: "Error",
+                    description: "Hubo un problema al registrar la asistencia. Por favor, inténtelo de nuevo.",
+                    variant: "destructive",
+                })
+            }
         } else {
             toast({
                 title: "Error",
@@ -301,7 +338,7 @@ export default function AttendancePage() {
                 variant: "destructive",
             })
         }
-    }, [state.excelInfo, state.gradoAcademico, state.uploadedAttendance])
+    }, [state.excelInfo, state.gradoAcademico, state.uploadedAttendance, idgradoacademico, session, fetchExistingAttendance])
 
     const resetUploadState = useCallback(() => {
         dispatch({ type: 'RESET_UPLOAD_STATE' })
@@ -499,12 +536,12 @@ export default function AttendancePage() {
                                         <TableCell className="text-right">
                                             <Button
                                                 className={`w-10 h-10 ${state.attendance.get(student.id) === 'P'
-                                                        ? 'bg-green-500 hover:bg-green-600 text-white'
-                                                        : state.attendance.get(student.id) === 'T'
-                                                            ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
-                                                            : state.attendance.get(student.id) === 'F'
-                                                                ? 'bg-red-500 hover:bg-red-600 text-white'
-                                                                : 'bg-gray-300 text-gray-600'
+                                                    ? 'bg-green-500 hover:bg-green-600 text-white'
+                                                    : state.attendance.get(student.id) === 'T'
+                                                        ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                                                        : state.attendance.get(student.id) === 'F'
+                                                            ? 'bg-red-500 hover:bg-red-600 text-white'
+                                                            : 'bg-gray-300 text-gray-600'
                                                     }`}
                                                 onClick={() => handleAttendanceChange(student.id)}
                                             >
