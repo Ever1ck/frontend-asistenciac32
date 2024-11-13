@@ -14,6 +14,7 @@ const modules = [
   { name: "Aulas", icon: School, description: "Gestionar aulas y espacios", path: "/portal-administrador/aulas" },
   { name: "Cursos", icon: BookOpen, description: "Administrar cursos y programas", path: "/portal-administrador/cursos" },
   { name: "Grados Académicos", icon: FileText, description: "Gestionar grados y títulos", path: "/portal-administrador/grados-academicos" },
+  { name: "Asistencias", icon: Layers, description: "Administrar las asistencias de los estudiantes", path: "/portal-administrador/asistencias" },
   { name: "Módulos", icon: Layers, description: "Configurar módulos del sistema", path: "/portal-administrador/modulos" },
   { name: "Configuración", icon: Settings, description: "Ajustes generales del sistema", path: "/portal-administrador/configuracion" },
 ]

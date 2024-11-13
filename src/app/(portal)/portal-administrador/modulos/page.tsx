@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/hooks/use-toast"
-import { Loader2, Save, Plus } from "lucide-react"
+import { Loader2, Save, Plus } from 'lucide-react'
 
 type Role = "Usuario" | "Docente" | "Auxiliar" | "Secretaria" | "Innovacion" | "Subdirector" | "Director" | "Administrador"
 
@@ -31,6 +31,7 @@ const availableModules: Module[] = [
     { id: "innovacion", name: "Innovación" },
     { id: "subdirector", name: "Subdirector" },
     { id: "director", name: "Director" },
+    { id: "administrador", name: "Administrador" }, // Added new module
 ]
 
 const initialAssignments: { rol: Role; modulos: string[] }[] = [
