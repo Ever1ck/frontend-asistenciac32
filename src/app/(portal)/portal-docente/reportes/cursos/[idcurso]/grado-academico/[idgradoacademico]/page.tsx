@@ -8,12 +8,12 @@ import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/hooks/use-toast'
-import { ChevronLeft, CalendarIcon } from 'lucide-react'
+import { ChevronLeft, CalendarIcon, Download } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import * as XLSX from 'xlsx'
 
 interface Asistencia {
     id: number
@@ -26,10 +26,10 @@ interface Asistencia {
     curso_area: string
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28']
+const COLORS = ['#4CAF50', '#FFC107', '#F44336']
 const ESTADO_COLORS = {
     Presente: 'bg-green-500 text-white',
-    Tardanza: 'bg-orange-500 text-white',
+    Tardanza: 'bg-yellow-500 text-white',
     Falta: 'bg-red-500 text-white'
 }
 
@@ -39,7 +39,6 @@ export default function ReporteGradoAcademico() {
     const { idcurso, idgradoacademico } = useParams()
     const [asistencias, setAsistencias] = useState<Asistencia[]>([])
     const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-    const [selectedCursoId, setSelectedCursoId] = useState<number>(Number(idcurso))
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
@@ -86,23 +85,10 @@ export default function ReporteGradoAcademico() {
         }
     }
 
-    const handleCursoSelect = (cursoId: string) => {
-        setSelectedCursoId(Number(cursoId))
-    }
-
     const filteredAsistencias = asistencias.filter(a =>
-        a.curso_id === selectedCursoId &&
+        a.curso_id === Number(idcurso) &&
         format(new Date(a.fecha), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
     )
-
-    const cursosObj = asistencias.reduce((acc, a) => {
-        if (!acc[a.curso_id]) {
-            acc[a.curso_id] = { id: a.curso_id, area: a.curso_area };
-        }
-        return acc;
-    }, {} as Record<number, { id: number; area: string }>);
-
-    const cursos = Object.values(cursosObj);
 
     const asistenciaData = [
         { name: 'Presente', value: filteredAsistencias.filter(a => a.estadoAsistencia === 'Presente').length },
@@ -116,6 +102,40 @@ export default function ReporteGradoAcademico() {
             case 'Tardanza': return 'T'
             case 'Falta': return 'F'
             default: return '-'
+        }
+    }
+
+    const exportToExcel = () => {
+        try {
+            // Prepare data for Excel
+            const excelData = filteredAsistencias.map(a => ({
+                'Fecha': format(new Date(a.fecha), 'dd/MM/yyyy'),
+                'Nombre del Estudiante': a.estudiante_nombre,
+                'Estado de Asistencia': a.estadoAsistencia
+            }))
+
+            // Create a new workbook and add the data
+            const wb = XLSX.utils.book_new()
+            const ws = XLSX.utils.json_to_sheet(excelData)
+
+            // Add the worksheet to the workbook
+            XLSX.utils.book_append_sheet(wb, ws, 'Asistencias')
+
+            // Generate Excel file
+            XLSX.writeFile(wb, `asistencias_${format(selectedDate, 'yyyy-MM-dd')}.xlsx`)
+
+            toast({
+                title: "Éxito",
+                description: "El archivo de asistencias ha sido exportado.",
+                variant: "default",
+            })
+        } catch (err) {
+            console.error(err)
+            toast({
+                title: "Error",
+                description: "No se pudo exportar el archivo de asistencias.",
+                variant: "destructive",
+            })
         }
     }
 
@@ -139,24 +159,12 @@ export default function ReporteGradoAcademico() {
             <Card className="mb-8">
                 <CardHeader>
                     <CardTitle className="text-2xl font-bold">
-                        Reporte de Asistencias
+                        Reporte de Asistencias - {asistencias[0]?.curso_area}
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-6">
                         <div className="flex justify-between items-center">
-                            <Select onValueChange={handleCursoSelect} defaultValue={selectedCursoId.toString()}>
-                                <SelectTrigger className="w-[200px]">
-                                    <SelectValue placeholder="Seleccionar curso" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {cursos.map((curso) => (
-                                        <SelectItem key={curso.id} value={curso.id.toString()}>
-                                            {curso.area}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
@@ -173,6 +181,9 @@ export default function ReporteGradoAcademico() {
                                     />
                                 </PopoverContent>
                             </Popover>
+                            <Button onClick={exportToExcel} variant="outline">
+                                <Download className="mr-2 h-4 w-4" /> Exportar a Excel
+                            </Button>
                         </div>
                         <ResponsiveContainer width="100%" height={300}>
                             <PieChart>
