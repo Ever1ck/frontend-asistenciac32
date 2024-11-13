@@ -18,9 +18,12 @@ const registerSchema = z.object({
   email: z.string().email({ message: "Correo electrónico inválido" }),
   password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
   dni: z.string().length(8, { message: "El DNI debe tener 8 dígitos" }),
-  nombre: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres" }),
+  nombres: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres" }),
   apellido_paterno: z.string().min(2, { message: "El apellido paterno debe tener al menos 2 caracteres" }),
   apellido_materno: z.string().min(2, { message: "El apellido materno debe tener al menos 2 caracteres" }),
+  telefono: z.string().optional(),
+  direccion: z.string().optional(),
+  sexo: z.enum(['Masculino', 'Femenino']).optional(),
   dia: z.string(),
   mes: z.string(),
   anio: z.string(),
@@ -47,6 +50,19 @@ export default function RegisterPage() {
     setIsLoading(true)
     setErrors({});
 
+    const formattedData = {
+      email: data.email,
+      password: data.password,
+      dni: data.dni,
+      nombres: data.nombres,
+      apellido_paterno: data.apellido_paterno,
+      apellido_materno: data.apellido_materno,
+      telefono: data.telefono || "",
+      direccion: data.direccion || "",
+      sexo: data.sexo || "Masculino",
+      fecha_nacimiento: `${data.anio}-${data.mes}-${data.dia}T00:00:00.000Z`
+    };
+
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register`,
       {
@@ -54,15 +70,7 @@ export default function RegisterPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-          dni: data.dni,
-          nombre: data.nombre,
-          apellido_paterno: data.apellido_paterno,
-          apellido_materno: data.apellido_materno,
-          fecha_nacimiento: `${data.anio}-${data.mes}-${data.dia}`,
-        }),
+        body: JSON.stringify(formattedData),
       }
     );
 
@@ -136,9 +144,9 @@ export default function RegisterPage() {
                   {formErrors.dni && <p className="text-sm text-red-500">{formErrors.dni.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="nombre">Nombre</Label>
-                  <Input id="nombre" {...register('nombre')} />
-                  {formErrors.nombre && <p className="text-sm text-red-500">{formErrors.nombre.message}</p>}
+                  <Label htmlFor="nombres">Nombres</Label>
+                  <Input id="nombres" {...register('nombres')} />
+                  {formErrors.nombres && <p className="text-sm text-red-500">{formErrors.nombres.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="apellido_paterno">Apellido Paterno</Label>
@@ -150,6 +158,33 @@ export default function RegisterPage() {
                   <Input id="apellido_materno" {...register('apellido_materno')} />
                   {formErrors.apellido_materno && <p className="text-sm text-red-500">{formErrors.apellido_materno.message}</p>}
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="telefono">Teléfono (opcional)</Label>
+                <Input id="telefono" {...register('telefono')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="direccion">Dirección (opcional)</Label>
+                <Input id="direccion" {...register('direccion')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sexo">Sexo</Label>
+                <Controller
+                  name="sexo"
+                  control={control}
+                  defaultValue="Masculino"
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione sexo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Masculino">Masculino</SelectItem>
+                        <SelectItem value="Femenino">Femenino</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Fecha de Nacimiento</Label>

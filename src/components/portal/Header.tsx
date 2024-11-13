@@ -68,7 +68,7 @@ export default function Header({ toggleSidebar, theme, setTheme, userProfile }: 
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <Link href="/portal/profile" className="w-full">
+          <Link href="/portal-usuario/profile" className="w-full">
             <DropdownMenuItem>
               <User className="mr-2 h-4 w-4" />
               <span>Perfil</span>
