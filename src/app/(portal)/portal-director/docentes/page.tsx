@@ -1,7 +1,8 @@
-"use client"
+'use client'
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -20,6 +21,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { ArrowLeft, Loader2 } from 'lucide-react'
 
 interface Docente {
     id: number
@@ -45,6 +47,7 @@ export default function AdministrarDocentes() {
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const { data: session } = useSession()
+    const router = useRouter()
 
     useEffect(() => {
         const fetchDocentes = async () => {
@@ -139,15 +142,29 @@ export default function AdministrarDocentes() {
         }
     }
 
-    if (isLoading) return <div>Cargando...</div>
-    if (error) return <div>Error: {error}</div>
+    if (isLoading) return (
+        <div className="flex justify-center items-center h-screen">
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+    )
+
+    if (error) return (
+        <div className="flex justify-center items-center h-screen">
+            <div className="text-red-500 font-semibold">Error: {error}</div>
+        </div>
+    )
 
     return (
         <div className="container mx-auto p-4">
-            <h1 className="text-2xl font-bold mb-4">Administrar Docentes</h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold">Administrar Docentes</h1>
+                <Button onClick={() => router.push('/portal-director')} variant="outline">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Regresar
+                </Button>
+            </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                    <Button onClick={() => setDocenteActual(null)}>Agregar Docente</Button>
+                    <Button onClick={() => setDocenteActual(null)} className="mb-4">Agregar Docente</Button>
                 </DialogTrigger>
                 <DialogContent>
                     <DialogHeader>
@@ -174,7 +191,7 @@ export default function AdministrarDocentes() {
                     </form>
                 </DialogContent>
             </Dialog>
-            <Table className="mt-4">
+            <Table>
                 <TableHeader>
                     <TableRow>
                         <TableHead>Nombres</TableHead>

@@ -6,8 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { format, parse } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Plus, Pencil, Trash, Search, ChevronDown } from 'lucide-react'
+import { Plus, Pencil, Trash, Search, ChevronDown, ArrowLeft } from 'lucide-react'
 import { useSession } from 'next-auth/react'
+import Link from 'next/link'
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,7 +25,6 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
@@ -262,8 +262,13 @@ export default function EstudiantesAdmin() {
     return (
         <div className="container mx-auto py-10 space-y-8">
             <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-2xl font-bold">Administración de Estudiantes</CardTitle>
+                    <Link href="/portal-administrador">
+                        <Button variant="outline">
+                            <ArrowLeft className="mr-2 h-4 w-4" /> Regresar
+                        </Button>
+                    </Link>
                 </CardHeader>
                 <CardContent>
                     <div className="flex justify-between items-center mb-6">
@@ -578,7 +583,7 @@ export default function EstudiantesAdmin() {
                             />
                         </div>
                     </div>
-                    <div className="rounded-md border">
+                    <div className="rounded-md border overflow-hidden">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -611,7 +616,14 @@ export default function EstudiantesAdmin() {
                                         <TableCell>{`${estudiante.Persona.apellido_paterno} ${estudiante.Persona.apellido_materno}`}</TableCell>
                                         <TableCell>{estudiante.Persona.dni}</TableCell>
                                         <TableCell>{estudiante.Persona.telefono}</TableCell>
-                                        <TableCell>{estudiante.EstadoEstudiante}</TableCell>
+                                        <TableCell>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${estudiante.EstadoEstudiante === 'Activo' ? 'bg-green-100 text-green-800' :
+                                                    estudiante.EstadoEstudiante === 'Inactivo' ? 'bg-red-100 text-red-800' :
+                                                        'bg-yellow-100 text-yellow-800'
+                                                }`}>
+                                                {estudiante.EstadoEstudiante}
+                                            </span>
+                                        </TableCell>
                                         <TableCell>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
