@@ -17,6 +17,7 @@ import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 import html2canvas from 'html2canvas'
+import Image from 'next/image'
 
 interface Asistencia {
     id: number
@@ -29,12 +30,14 @@ interface Asistencia {
     curso_area: string
 }
 
-const COLORS = ['#0070f3', '#ff0080', '#00ff00']
+const COLORS = ['#4CAF50', '#FFC107', '#F44336']
 const ESTADO_COLORS = {
-    Presente: 'bg-blue-500 text-white',
-    Tardanza: 'bg-pink-500 text-white',
-    Falta: 'bg-green-500 text-white'
+    Presente: 'bg-green-500 text-white',
+    Tardanza: 'bg-yellow-500 text-black',
+    Falta: 'bg-red-500 text-white'
 }
+
+const logoc32 = '/logoc32.png'
 
 export default function ReporteGradoAcademico() {
     const { data: session } = useSession()
@@ -140,110 +143,134 @@ export default function ReporteGradoAcademico() {
 
     const exportToPDF = async () => {
         try {
-            const pdf = new jsPDF('p', 'mm', 'a4')
-            const pageWidth = pdf.internal.pageSize.getWidth()
-            const pageHeight = pdf.internal.pageSize.getHeight()
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
 
-            // Header
-            pdf.setFillColor(0, 112, 243) // Vercel blue
-            pdf.rect(0, 0, pageWidth, 40, 'F')
-            pdf.setTextColor(255, 255, 255)
-            pdf.setFont("helvetica", "bold")
-            pdf.setFontSize(24)
-            pdf.text('Reporte de Asistencias', pageWidth / 2, 25, { align: 'center' })
+            // Header with logo
+            pdf.addImage(logoc32, 'PNG', 10, 10, 30, 30);
+            pdf.setFillColor(0, 112, 243); // Vercel blue
+            pdf.rect(0, 0, pageWidth, 40, 'F');
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(24);
+            pdf.text('Reporte de Asistencias', pageWidth / 2, 25, { align: 'center' });
 
             // Subheader
-            pdf.setTextColor(0, 0, 0)
-            pdf.setFont("helvetica", "normal")
-            pdf.setFontSize(12)
-            pdf.text(`Fecha: ${format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}`, 20, 50)
-            pdf.text(`Curso: ${asistencias[0]?.curso_area}`, 20, 58)
+            pdf.setTextColor(0, 0, 0);
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(12);
+            pdf.text(`Fecha: ${format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}`, 20, 50);
+            pdf.text(`Curso: ${asistencias[0]?.curso_area || 'No especificado'}`, pageWidth - 20, 50, { align: 'right' });
+
+            let yPosition = 60;
 
             // Chart
-            if (chartRef.current) {
-                const canvas = await html2canvas(chartRef.current)
-                const imgData = canvas.toDataURL('image/png')
-                const imgWidth = 100
-                const imgHeight = (canvas.height * imgWidth) / canvas.width
-                pdf.addImage(imgData, 'PNG', (pageWidth - imgWidth) / 2, 70, imgWidth, imgHeight)
+            if (chartRef.current && filteredAsistencias.length > 0) {
+                const canvas = await html2canvas(chartRef.current);
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = 100;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                pdf.addImage(imgData, 'PNG', (pageWidth - imgWidth) / 2, yPosition, imgWidth, imgHeight);
+                yPosition += imgHeight + 10;
 
                 // Legend
-                pdf.setFontSize(10)
+                pdf.setFontSize(10);
                 asistenciaData.forEach((data, index) => {
-                    pdf.setFillColor(parseInt(COLORS[index].slice(1, 3), 16), parseInt(COLORS[index].slice(3, 5), 16), parseInt(COLORS[index].slice(5, 7), 16))
-                    pdf.circle((pageWidth / 2) - 40, 75 + imgHeight + (index * 8), 2, 'F')
-                    pdf.text(`${data.name}: ${data.value}`, (pageWidth / 2) - 35, 77 + imgHeight + (index * 8))
-                })
+                    pdf.setFillColor(parseInt(COLORS[index].slice(1, 3), 16), parseInt(COLORS[index].slice(3, 5), 16), parseInt(COLORS[index].slice(5, 7), 16));
+                    pdf.circle((pageWidth / 2) - 40, yPosition + (index * 8), 2, 'F');
+                    pdf.text(`${data.name}: ${data.value}`, (pageWidth / 2) - 35, yPosition + 2 + (index * 8));
+                });
+                yPosition += 30;
             }
 
-            // Summary Table
-            pdf.setFontSize(14)
-            pdf.setFont("helvetica", "bold")
-            pdf.text('Resumen de Asistencias', 20, 140)
+            if (filteredAsistencias.length > 0) {
+                // Summary Table
+                pdf.setFontSize(14);
+                pdf.setFont("helvetica", "bold");
+                pdf.text('Resumen de Asistencias', 20, yPosition);
+                yPosition += 5;
 
-            const summaryData = [
-                ['Estado', 'Cantidad', 'Porcentaje'],
-                ...asistenciaData.map(data => [
-                    data.name,
-                    data.value.toString(),
-                    `${((data.value / filteredAsistencias.length) * 100).toFixed(2)}%`
-                ])
-            ]
+                const summaryData = [
+                    ['Estado', 'Cantidad', 'Porcentaje'],
+                    ...asistenciaData.map(data => [
+                        data.name,
+                        data.value.toString(),
+                        `${((data.value / filteredAsistencias.length) * 100).toFixed(2)}%`
+                    ])
+                ];
+                pdf.autoTable({
+                    startY: yPosition,
+                    head: [summaryData[0]],
+                    body: summaryData.slice(1),
+                    theme: 'grid',
+                    headStyles: { fillColor: [0, 112, 243], textColor: [255, 255, 255] },
+                    styles: { fontSize: 10, cellPadding: 2 },
+                    columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 40 }, 2: { cellWidth: 40 } }
+                });
+            } else {
+                pdf.setFontSize(14);
+                pdf.setFont("helvetica", "bold");
+                pdf.text('No hay asistencias registradas para este día.', 20, yPosition);
+            }
 
-            // @ts-ignore
-            pdf.autoTable({
-                startY: 145,
-                head: [summaryData[0]],
-                body: summaryData.slice(1),
-                theme: 'grid',
-                headStyles: { fillColor: [0, 112, 243], textColor: [255, 255, 255] },
-                styles: { fontSize: 10, cellPadding: 2 },
-                columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 40 }, 2: { cellWidth: 40 } }
-            })
+            // Footer for first page
+            pdf.setFontSize(10);
+            pdf.setTextColor(128, 128, 128);
+            pdf.text(`Generado el ${format(new Date(), "dd/MM/yyyy 'a las' HH:mm:ss")}`, 20, pageHeight - 10);
+            pdf.text('Página 1 de 2', pageWidth - 40, pageHeight - 10);
+
+            // Add new page for detailed list
+            pdf.addPage();
 
             // Detailed Table
-            pdf.setFontSize(14)
-            pdf.setFont("helvetica", "bold")
-            pdf.text('Lista Detallada de Estudiantes', 20, pdf.autoTable.previous.finalY + 20)
+            pdf.setFontSize(14);
+            pdf.setFont("helvetica", "bold");
+            pdf.setTextColor(0, 0, 0);
+            pdf.text('Lista Detallada de Estudiantes', 20, 20);
 
-            const tableData = filteredAsistencias.map(a => [
-                a.estudiante_nombre,
-                a.estadoAsistencia
-            ])
+            if (filteredAsistencias.length > 0) {
+                const tableData = filteredAsistencias.map(a => [
+                    a.estudiante_nombre,
+                    a.estadoAsistencia
+                ]);
+                pdf.autoTable({
+                    startY: 30,
+                    head: [['Nombres y Apellidos', 'Asistencia']],
+                    body: tableData,
+                    theme: 'striped',
+                    headStyles: { fillColor: [0, 112, 243], textColor: [255, 255, 255] },
+                    styles: { fontSize: 10, cellPadding: 2 },
+                    columnStyles: { 0: { cellWidth: 130 }, 1: { cellWidth: 30 } }
+                });
+            } else {
+                pdf.setFontSize(12);
+                pdf.setFont("helvetica", "normal");
+                pdf.text('No hay asistencias registradas para este día.', 20, 40);
+            }
 
-            // @ts-ignore
-            pdf.autoTable({
-                startY: pdf.autoTable.previous.finalY + 25,
-                head: [['Nombres y Apellidos', 'Asistencia']],
-                body: tableData,
-                theme: 'striped',
-                headStyles: { fillColor: [0, 112, 243], textColor: [255, 255, 255] },
-                styles: { fontSize: 10, cellPadding: 2 },
-                columnStyles: { 0: { cellWidth: 130 }, 1: { cellWidth: 30 } }
-            })
+            // Footer for second page
+            pdf.setFontSize(10);
+            pdf.setTextColor(128, 128, 128);
+            pdf.text(`Generado el ${format(new Date(), "dd/MM/yyyy 'a las' HH:mm:ss")}`, 20, pageHeight - 10);
+            pdf.text('Página 2 de 2', pageWidth - 40, pageHeight - 10);
 
-            // Footer
-            pdf.setFontSize(10)
-            pdf.setTextColor(128, 128, 128)
-            pdf.text(`Generado el ${format(new Date(), "dd/MM/yyyy 'a las' HH:mm:ss")}`, 20, pageHeight - 10)
-            pdf.text('Página 1 de 1', pageWidth - 40, pageHeight - 10)
-
-            pdf.save(`asistencias_${format(selectedDate, 'yyyy-MM-dd')}.pdf`)
+            pdf.save(`asistencias_${format(selectedDate, 'yyyy-MM-dd')}.pdf`);
 
             toast({
                 title: "Éxito",
                 description: "El archivo de asistencias ha sido exportado a PDF.",
                 variant: "default",
-            })
+            });
         } catch (err) {
-            console.error(err)
+            console.error('Error al exportar PDF:', err);
             toast({
                 title: "Error",
                 description: "No se pudo exportar el archivo de asistencias a PDF.",
                 variant: "destructive",
-            })
+            });
         }
-    }
+    };
 
     if (isLoading) {
         return (
@@ -296,77 +323,85 @@ export default function ReporteGradoAcademico() {
                                 </Button>
                             </div>
                         </div>
-                        <div ref={chartRef}>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={asistenciaData}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        outerRadius={80}
-                                        fill="#8884d8"
-                                        dataKey="value"
-                                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                    >
-                                        {asistenciaData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip />
-                                    <Legend />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-semibold mb-2">Resumen de Asistencias</h3>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Estado</TableHead>
-                                        <TableHead>Cantidad</TableHead>
-                                        <TableHead>Porcentaje</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {asistenciaData.map((data) => (
-                                        <TableRow key={data.name}>
-                                            <TableCell>{data.name}</TableCell>
-                                            <TableCell>{data.value}</TableCell>
-                                            <TableCell>{((data.value / filteredAsistencias.length) * 100).toFixed(2)}%</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-semibold mb-2">Lista Detallada de Estudiantes</h3>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Nombres y Apellidos</TableHead>
-                                        <TableHead className="text-right">Asistencia</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredAsistencias.map((asistencia) => (
-                                        <TableRow key={asistencia.id}>
-                                            <TableCell className="font-medium">
-                                                {asistencia.estudiante_nombre}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <span
-                                                    className={`px-2 py-1 rounded-full ${ESTADO_COLORS[asistencia.estadoAsistencia]}`}
-                                                    title={asistencia.estadoAsistencia}
-                                                >
-                                                    {getEstadoLabel(asistencia.estadoAsistencia)}
-                                                </span>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
+                        {filteredAsistencias.length > 0 ? (
+                            <>
+                                <div ref={chartRef} className="w-full max-w-md mx-auto">
+                                    <ResponsiveContainer width="100%" height={400}>
+                                        <PieChart>
+                                            <Pie
+                                                data={asistenciaData}
+                                                cx="50%"
+                                                cy="50%"
+                                                labelLine={false}
+                                                outerRadius={150}
+                                                fill="#8884d8"
+                                                dataKey="value"
+                                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                            >
+                                                {asistenciaData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip />
+                                            <Legend verticalAlign="bottom" height={36} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-2">Resumen de Asistencias</h3>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Estado</TableHead>
+                                                <TableHead>Cantidad</TableHead>
+                                                <TableHead>Porcentaje</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {asistenciaData.map((data) => (
+                                                <TableRow key={data.name}>
+                                                    <TableCell>{data.name}</TableCell>
+                                                    <TableCell>{data.value}</TableCell>
+                                                    <TableCell>{((data.value / filteredAsistencias.length) * 100).toFixed(2)}%</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-2">Lista Detallada de Estudiantes</h3>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Nombres y Apellidos</TableHead>
+                                                <TableHead className="text-right">Asistencia</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {filteredAsistencias.map((asistencia) => (
+                                                <TableRow key={asistencia.id}>
+                                                    <TableCell className="font-medium">
+                                                        {asistencia.estudiante_nombre}
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <span
+                                                            className={`px-2 py-1 rounded-full ${ESTADO_COLORS[asistencia.estadoAsistencia]}`}
+                                                            title={asistencia.estadoAsistencia}
+                                                        >
+                                                            {getEstadoLabel(asistencia.estadoAsistencia)}
+                                                        </span>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-center text-gray-500 py-8">
+                                No hay asistencias registradas para este día.
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>
