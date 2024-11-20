@@ -17,50 +17,75 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format, parseISO, isToday } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { CalendarIcon, ChevronLeft, Users, Building2, User, Download } from 'lucide-react'
+import { CalendarIcon, ChevronLeft, Users, Building2, User } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { ScrollArea } from "@/components/ui/scroll-area"
-import * as XLSX from 'xlsx'
+import { ExcelGenerator } from '@/components/docentes/excel-generator'
+
+interface Persona {
+    nombres: string
+    apellido_paterno: string
+    apellido_materno: string
+}
 
 interface Student {
-    id: number;
-    Persona: {
-        nombres: string;
-        apellido_paterno: string;
-        apellido_materno: string;
-    };
+    id: number
+    Persona: Persona
+}
+
+interface Tutor {
+    Persona: Persona
+}
+
+interface Aula {
+    edificio: number
+    piso: number
+    numeroAula: number
+}
+
+interface Curso {
+    id: number
+    area: {
+        id: number
+        nombrearea: string
+    }
+}
+
+interface Horario {
+    id: number
+    gradoAcademico_id: number
+    curso: Curso
+    turno: string
+    dia: string
+    horas: string[]
 }
 
 interface GradoAcademico {
-    id: number;
-    grado: string;
-    seccion: string;
-    tutor: {
-        Persona: {
-            nombres: string;
-            apellido_paterno: string;
-            apellido_materno: string;
-        };
-    };
-    aula: {
-        edificio: number;
-        piso: number;
-        numeroAula: number;
-    };
-    Estudiante: Student[];
+    id: number
+    grado: string
+    seccion: string
+    tutor_id: number
+    aula_id: number
+    turno: string
+    created_at: string
+    updated_at: string
+    tutor: Tutor
+    aula: Aula
+    Estudiante: Student[]
+    Horario: Horario[]
 }
 
-type AttendanceStatus = 'P' | 'T' | 'F' | '-';
+type AttendanceStatus = 'P' | 'T' | 'F' | '-'
 
 interface AttendanceRecord {
-    id: number;
-    fecha: string;
-    curso_id: number;
-    gradoAcademico_id: number;
-    estudiante_id: number;
-    estadoAsistencia: 'Presente' | 'Tardanza' | 'Falta';
-    estudiante_nombre: string;
-    curso_area: string;
+    id: number
+    fecha: string
+    curso_id: number
+    gradoAcademico_id: number
+    estudiante_id: number
+    estadoAsistencia: 'Presente' | 'Tardanza' | 'Falta'
+    estudiante_nombre: string
+    curso_area: string
 }
 
 export default function AttendancePage() {
@@ -100,10 +125,6 @@ export default function AttendancePage() {
                 record.curso_id === parseInt(idcurso as string)
             )
 
-            if (attendanceForSelectedDate.length > 0) {
-                setCursoArea(attendanceForSelectedDate[0].curso_area)
-            }
-
             const initialAttendance = attendanceForSelectedDate.reduce((acc: Record<number, AttendanceStatus>, record) => {
                 acc[record.estudiante_id] = record.estadoAsistencia === 'Presente' ? 'P' : record.estadoAsistencia === 'Tardanza' ? 'T' : 'F'
                 return acc
@@ -136,11 +157,21 @@ export default function AttendancePage() {
                 if (!response.ok) {
                     throw new Error('Failed to fetch grado academico')
                 }
-                const data = await response.json()
+                const data: GradoAcademico = await response.json()
                 data.Estudiante.sort((a: Student, b: Student) =>
                     a.Persona.apellido_paterno.localeCompare(b.Persona.apellido_paterno)
                 )
                 setGradoAcademico(data)
+
+                // Find the course in the Horario array that matches the idcurso
+                const matchingCourse = data.Horario.find(horario => horario.curso.id === parseInt(idcurso as string))
+                if (matchingCourse) {
+                    setCursoArea(matchingCourse.curso.area.nombrearea)
+                } else {
+                    console.error('Course not found in Horario')
+                    setCursoArea('Curso no encontrado')
+                }
+
                 await fetchExistingAttendance()
             } catch (err) {
                 setError('Error fetching grado academico')
@@ -151,18 +182,18 @@ export default function AttendancePage() {
         }
 
         fetchGradoAcademico()
-    }, [session, idgradoacademico, fetchExistingAttendance])
+    }, [session, idgradoacademico, idcurso, fetchExistingAttendance])
 
     const handleAttendanceChange = (studentId: number) => {
-        if (!attendanceRegistered) return;
+        if (!attendanceRegistered) return
         setAttendance(prev => {
             const currentStatus = prev[studentId]
             let newStatus: AttendanceStatus
             switch (currentStatus) {
-                case 'P': newStatus = 'T'; break;
-                case 'T': newStatus = 'F'; break;
-                case 'F': newStatus = 'P'; break;
-                default: newStatus = 'P';
+                case 'P': newStatus = 'T'; break
+                case 'T': newStatus = 'F'; break
+                case 'F': newStatus = 'P'; break
+                default: newStatus = 'P'
             }
             const newAttendance = { ...prev, [studentId]: newStatus }
             const changesExist = !Object.entries(newAttendance).every(([id, status]) => originalAttendance[parseInt(id)] === status)
@@ -172,9 +203,9 @@ export default function AttendancePage() {
     }
 
     const handleSubmitAttendance = async () => {
-        if (!gradoAcademico || isSubmitting) return;
+        if (!gradoAcademico || isSubmitting) return
 
-        setIsSubmitting(true);
+        setIsSubmitting(true)
 
         const attendanceData = Object.entries(attendance).map(([studentId, status]) => ({
             fecha: format(selectedDate, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"),
@@ -182,7 +213,7 @@ export default function AttendancePage() {
             gradoAcademico_id: parseInt(idgradoacademico as string),
             estudiante_id: parseInt(studentId),
             estadoAsistencia: status === 'P' ? 'Presente' : status === 'T' ? 'Tardanza' : 'Falta'
-        }));
+        }))
 
         try {
             for (const data of attendanceData) {
@@ -201,29 +232,29 @@ export default function AttendancePage() {
                         Authorization: `Bearer ${session?.user?.accessToken}`,
                     },
                     body: JSON.stringify(data),
-                });
+                })
 
                 if (!response.ok) {
-                    throw new Error(`Failed to submit attendance for student ${data.estudiante_id}`);
+                    throw new Error(`Failed to submit attendance for student ${data.estudiante_id}`)
                 }
             }
 
             toast({
                 title: "Éxito",
                 description: "La asistencia se ha guardado correctamente para todos los estudiantes.",
-            });
-            await fetchExistingAttendance();
+            })
+            await fetchExistingAttendance()
         } catch (error) {
-            console.error('Error al enviar las asistencias:', error);
+            console.error('Error al enviar las asistencias:', error)
             toast({
                 title: "Error",
                 description: "Hubo un problema al guardar la asistencia. Por favor, inténtelo de nuevo.",
                 variant: "destructive",
-            });
+            })
         } finally {
-            setIsSubmitting(false);
+            setIsSubmitting(false)
         }
-    };
+    }
 
     const handleRegisterAttendance = () => {
         if (!isToday(selectedDate)) {
@@ -236,24 +267,24 @@ export default function AttendancePage() {
         }
 
         setAttendance(prev => {
-            const newAttendance: Record<number, AttendanceStatus> = {};
+            const newAttendance: Record<number, AttendanceStatus> = {}
             for (const student of gradoAcademico?.Estudiante || []) {
-                newAttendance[student.id] = 'P';
+                newAttendance[student.id] = 'P'
             }
-            return newAttendance;
-        });
-        setAttendanceRegistered(true);
-        setHasChanges(true);
-        setOriginalAttendance({});
-    };
+            return newAttendance
+        })
+        setAttendanceRegistered(true)
+        setHasChanges(true)
+        setOriginalAttendance({})
+    }
 
     const handleCancelAttendance = () => {
-        setAttendance(originalAttendance);
-        setHasChanges(false);
+        setAttendance(originalAttendance)
+        setHasChanges(false)
         if (Object.keys(originalAttendance).length === 0) {
-            setAttendanceRegistered(false);
+            setAttendanceRegistered(false)
         }
-    };
+    }
 
     const getAttendanceButtonStyle = (status: AttendanceStatus) => {
         switch (status) {
@@ -266,49 +297,6 @@ export default function AttendancePage() {
 
     const handleGoBack = () => {
         router.back()
-    }
-
-    const handleDownloadTemplate = () => {
-        if (!gradoAcademico) return;
-
-        const infoSheet = XLSX.utils.aoa_to_sheet([
-            ['Información del Grado Académico'],
-            ['Grado', gradoAcademico.grado],
-            ['Sección', gradoAcademico.seccion],
-            ['Tutor', `${gradoAcademico.tutor.Persona.nombres} ${gradoAcademico.tutor.Persona.apellido_paterno} ${gradoAcademico.tutor.Persona.apellido_materno}`],
-            ['Aula', `Edificio ${gradoAcademico.aula.edificio}, Piso ${gradoAcademico.aula.piso}, Aula ${gradoAcademico.aula.numeroAula}`],
-            ['Curso', cursoArea],
-            ['Fecha', format(selectedDate, 'yyyy-MM-dd')] // Updated date format
-        ]);
-
-        const studentSheet = XLSX.utils.aoa_to_sheet([
-            ['ID', 'Apellido Paterno', 'Apellido Materno', 'Nombres', 'Asistencia (P/T/F)'],
-            ...gradoAcademico.Estudiante.map(student => [
-                student.id,
-                student.Persona.apellido_paterno,
-                student.Persona.apellido_materno,
-                student.Persona.nombres,
-                ''
-            ])
-        ]);
-
-        const dataValidation = {
-            type: 'list',
-            allowBlank: false,
-            formula1: '"P,T,F"',
-            showDropDown: true
-        };
-        const range = XLSX.utils.decode_range(studentSheet['!ref'] || 'A1:E1');
-        for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-            const address = XLSX.utils.encode_cell({ r: R, c: 4 });
-            studentSheet[address].dataValidation = dataValidation;
-        }
-
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, infoSheet, "Información");
-        XLSX.utils.book_append_sheet(workbook, studentSheet, "Lista de Estudiantes");
-
-        XLSX.writeFile(workbook, `Plantilla_Asistencia_${gradoAcademico.grado}_${gradoAcademico.seccion}_${format(selectedDate, 'yyyy-MM-dd')}.xlsx`);
     }
 
     if (isLoading) return (
@@ -386,10 +374,11 @@ export default function AttendancePage() {
                                     />
                                 </PopoverContent>
                             </Popover>
-                            <Button onClick={handleDownloadTemplate} variant="outline">
-                                <Download className="mr-2 h-4 w-4" />
-                                Descargar Plantilla
-                            </Button>
+                            <ExcelGenerator
+                                gradoAcademico={gradoAcademico}
+                                cursoArea={cursoArea}
+                                selectedDate={selectedDate}
+                            />
                         </div>
                         <div className="flex space-x-2 w-full sm:w-auto">
                             {attendanceRegistered ? (
