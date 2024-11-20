@@ -212,7 +212,7 @@ export default function AttendancePage() {
         }))
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/asistencias/`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/asistencias`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
